@@ -1,0 +1,59 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-04T22:17:46.196Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 3,
+    "implemented": 3,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Wire the green \"Signup\" button on the Signup screen (frontend/src/screens/SignupScreen.tsx) to a real form submit handler so it is never a dead button in draft mode (UI-only; no backend calls).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/screens/SignupScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/screens/SignupScreen.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "On Signup submit, validate required fields and show inline error messages next to the corresponding fields when missing/invalid. At minimum, validate all fields that are presented as required in the UI (e.g., fields marked with \"*\") and any additional signup-critical fields present on the form (email/password/confirm password).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/screens/SignupScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/screens/SignupScreen.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "If Signup validation passes (all required fields are filled and valid), show a temporary success response in the UI (no backend). Implement either (A) navigation to a simple \"Signup successful / Pending approval\" screen/state, or (B) a clear success message on the Signup screen using existing UI components (e.g., shadcn Alert).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/screens/SignupScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/screens/SignupScreen.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/screens/SignupScreen.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

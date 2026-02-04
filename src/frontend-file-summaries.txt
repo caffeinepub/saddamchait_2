@@ -1,0 +1,11 @@
+{
+  "frontend/src/App.tsx": "Main app component managing navigation state between Login, Signup, and PasswordReset screens using local UI-only state (no routing library).",
+  "frontend/src/screens/LoginScreen.tsx": "Login screen with email/password inputs, login button, \"Forgot password?\" link, and navigation to signup screen.",
+  "frontend/src/screens/SignupScreen.tsx": "Signup screen with profile photo capture (gallery/camera with front/back switching), relation dropdown with predefined options plus \"Other\" (which reveals a custom relation text input), age validation (18+), mobile number with country code and 10-digit validation, email/password/confirm password fields, full form validation on submit with inline error messages that clear on field edit, and a success screen with \"Back to Login\" button after successful validation (UI-only, no backend).",
+  "frontend/src/components/auth/AuthLayout.tsx": "Reusable auth layout wrapper providing consistent mobile-first centered layout, spacing, and footer with attribution for both auth screens.",
+  "frontend/src/main.tsx": "Application entry point that renders App wrapped in QueryClientProvider only (Internet Identity provider removed for UI-only phase).",
+  "frontend/src/index.css": "Global styles with Tailwind imports and custom OKLCH color system using a warm teal/green primary palette (avoiding blue/purple) with proper light/dark mode support.",
+  "frontend/tailwind.config.js": "Tailwind configuration with extended color tokens mapped to CSS variables and consistent design system settings.",
+  "frontend/src/lib/profileImageProcessing.ts": "Client-side utility for processing profile images - resizes to max 512x512, compresses to JPEG at 70% quality, validates size under 200KB, and returns processed file with metadata.",
+  "frontend/src/screens/PasswordResetScreen.tsx": "UI-only password reset screen with email input, submit button, and success placeholder message (no backend calls or actual email sending)."
+}

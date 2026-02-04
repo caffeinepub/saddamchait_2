@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 22,
+  "summary": "saddamchait private family chat app: mobile-first React UI with Login/Signup screens, upgraded Signup form fields (profile photo + relation/age/mobile), password reset UI, and interactive form validation/submit behavior (UI-only in draft; no backend or paid features).",
+  "existing_features": [
+    {
+      "id": "IF-1",
+      "title": "Motoko backend canister scaffold",
+      "synonyms": [
+        "backend canister",
+        "Motoko core"
+      ],
+      "description": "Base Motoko canister source and system IDL wiring suitable for ICP deployment, with generated frontend declarations for actor typing.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-2",
+      "title": "React + Vite + Tailwind frontend scaffold",
+      "synonyms": [
+        "frontend scaffold",
+        "initial app"
+      ],
+      "description": "React application setup (Vite, TypeScript, Tailwind) with app shell, routing/screens entrypoints, and project config files.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-3",
+      "title": "Internet Identity authentication integration",
+      "synonyms": [
+        "II auth",
+        "Internet Identity login"
+      ],
+      "description": "Hooks and UI layout/screens for authentication using Internet Identity, including actor initialization support.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-4",
+      "title": "Reusable UI component library (shadcn/ui) included",
+      "synonyms": [
+        "shadcn components",
+        "UI kit"
+      ],
+      "description": "Vendored shadcn/ui component set and supporting utilities/config (eslint rules, components.json, utils).",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-5",
+      "title": "Build/deploy template and automation scripts",
+      "synonyms": [
+        "Docker build template",
+        "deploy scripts",
+        "icp.yaml"
+      ],
+      "description": "Build template assets (Dockerfile, deploy.sh, canister yaml templates, workspace/package configs) plus scripts for pruning/resizing images and build orchestration.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-6",
+      "title": "Auth UI screens (login, signup, password reset)",
+      "synonyms": [
+        "authentication screens",
+        "auth flows"
+      ],
+      "description": "Frontend screens and layout for user authentication flows, including Login, Signup, and Password Reset screens integrated with existing Internet Identity hooks.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-7",
+      "title": "Camera capture hook and profile image processing utilities",
+      "synonyms": [
+        "camera hook",
+        "profile image processing"
+      ],
+      "description": "Client-side camera capture hook plus utilities for processing profile images (e.g., resizing/format handling) to support avatar/profile photo workflows.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-8",
+      "title": "ICP CLI / GitHub export-ready project template configuration",
+      "synonyms": [
+        "github export icp-cli",
+        "icp.yaml + canister.yaml templates"
+      ],
+      "description": "Provides standardized icp-cli compatible project templates and configs (icp.yaml, per-canister canister.yaml templates, build/deploy scripts and workspace packaging) to support reproducible builds and repository export workflows.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "feature-wire-the-green-signup-button-on-the-signup-screen-frontend-src-screens-signupscreen-tsx-to-a-real-form-submit-handler-so-it-is-never-a-dead-button-in-draft-mode-ui-only-no-backend-calls",
+      "title": "Wire the green \"Signup\" button on the Signup screen (frontend/src/screens/SignupScreen.tsx) to a real form submit handler so it is never a dead button in draft mode (UI-only; no backend calls).",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-signup-submit-validate-required-fields-and-show-inline-error-messages-next-to-the-corresponding-fields-when-missing-invalid-at-minimum-validate-all-fields-that-are-presented-as-required-in-the-ui-e-g-fields-marked-with-and-any-additional-signup-critical-fields-present-on-the-form-email-password-confirm-password",
+      "title": "On Signup submit, validate required fields and show inline error messages next to the corresponding fields when missing/invalid. At minimum, validate all fields that are presented as required in the UI (e.g., fields marked with \"*\") and any additional signup-critical fields present on the form (email/password/confirm password).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-if-signup-validation-passes-all-required-fields-are-filled-and-valid-show-a-temporary-success-response-in-the-ui-no-backend-implement-either-a-navigation-to-a-simple-signup-successful-pending-approval-screen-state-or-b-a-clear-success-message-on-the-signup-screen-using-existing-ui-components-e-g-shadcn-alert",
+      "title": "If Signup validation passes (all required fields are filled and valid), show a temporary success response in the UI (no backend). Implement either (A) navigation to a simple \"Signup successful / Pending approval\" screen/state, or (B) a clear success message on the Signup screen using existing UI components (e.g., shadcn Alert).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Upgrade Signup UI: mandatory profile photo with Gallery/Camera, preview, resize/compress constraints (512x512, JPEG 70%, <200KB) and placeholder face-validation messaging",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Add Relation field dropdown (Father/Mother/Brother/Sister/Son/Daughter/Other) with conditional custom text input when 'Other' is selected",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add Age field (required) with minimum age 18 and inline validation messaging",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Add Mobile Number field (required) with country code selector + number input; relaxed validation to only require 10 digits and mark as 'unverified' (no real-number/carrier validation)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Add Login 'Forgot password?' link and UI-only password reset screen (email input, submit, success placeholder; no backend/email send)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Wire Signup button to real submit handler (UI-only): validate required fields, show inline errors, and on success show temporary success response (message or 'Signup successful / Pending approval' screen)",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "architectural_notes": [
+    "Project structured as ICP canisters with separate backend (Motoko) and frontend (React) configurations and generated declaration files for typed actor calls.",
+    "Frontend auth uses Internet Identity; custom linting/rules enforce correct II provider usage and avoid problematic query-key bigint usage.",
+    "shadcn/ui components are vendored into the repository with shared UI utilities and Tailwind/PostCSS configuration.",
+    "Build/deploy is standardized via a build-template (Dockerfile, deploy script, canister yaml templates) and supporting Node scripts (image prune/resize).",
+    "Frontend includes a camera capture hook and a dedicated profile image processing utility module for handling user-provided images (e.g., avatars).",
+    "Auth UI is implemented as dedicated screens (Login/Signup/Password Reset) layered on top of the existing Internet Identity integration.",
+    "Build template now includes icp-cli/GitHub-export oriented configuration (icp.yaml plus per-canister canister.yaml templates) aligned with deploy.sh and workspace packaging for reproducible exports.",
+    "Project is a private family chat app (saddamchait) with a strict FREE-only scope: no paid features, no recommendations.",
+    "Signup image processing requirements are client-side: resize to max 512x512 (keep aspect ratio), compress to JPEG at ~70% quality, target final size <200KB, and show preview before signup.",
+    "Mobile number validation during signup is minimal (10 digits only), numbers are treated as 'unverified' with verification deferred to future scope."
+  ],
+  "known_issues": [
+    "Signup button is currently non-functional (no submit handler wired)."
+  ],
+  "isFixRequest": true,
+  "gameProjectType": "none",
+  "projectName": "saddamchait",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

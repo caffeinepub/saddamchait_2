@@ -1,0 +1,79 @@
+{
+  "kind": "build_request",
+  "title": "Fix non-functional Signup button by adding form submit + validation + success feedback (UI-only)",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Wire the green \"Signup\" button on the Signup screen (frontend/src/screens/SignupScreen.tsx) to a real form submit handler so it is never a dead button in draft mode (UI-only; no backend calls).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "The green Signup button is currently non-functional.",
+          "Please fix this by wiring the Signup button to a real form submit handler."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Clicking \"Signup\" triggers a submit handler (e.g., form onSubmit) and prevents default page reload behavior.",
+        "No backend logic is added (no actor calls, no external services)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "On Signup submit, validate required fields and show inline error messages next to the corresponding fields when missing/invalid. At minimum, validate all fields that are presented as required in the UI (e.g., fields marked with \"*\") and any additional signup-critical fields present on the form (email/password/confirm password).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "On clicking Signup, the form must validate required fields.",
+          "If any required field is missing, show inline error messages."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Submitting with missing required fields displays inline, field-specific error text in English (no generic silent failure).",
+        "Errors are cleared/updated appropriately when the user fixes inputs and re-submits.",
+        "If Relation is \"Other\", the custom relation text input is validated as required and shows an inline error when empty.",
+        "Password and Confirm Password are validated so that missing values and mismatches show inline errors."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "If Signup validation passes (all required fields are filled and valid), show a temporary success response in the UI (no backend). Implement either (A) navigation to a simple \"Signup successful / Pending approval\" screen/state, or (B) a clear success message on the Signup screen using existing UI components (e.g., shadcn Alert).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "If all fields are filled, show a temporary success action (for now):",
+          "Either navigate to a “Signup successful / Pending approval” screen OR show a clear success message."
+        ]
+      },
+      "acceptanceCriteria": [
+        "When all required fields are valid, the user sees a clear English success confirmation (e.g., \"Signup successful / Pending approval\").",
+        "Success behavior does not add any backend logic or paid services.",
+        "After success, the user has an obvious next action (e.g., a \"Back to Login\" button) that works."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not add backend logic yet (no Motoko canister changes required for this request).",
+    "Do not add paid services or payment flows.",
+    "UI + basic interactive behavior only; must work in DRAFT before going live.",
+    "Do not modify files under frontend/src/components/ui or other frontend immutablePaths."
+  ],
+  "nonGoals": [
+    "Creating real user accounts or persisting signup data.",
+    "Integrating Firebase, Firestore, or any external database/service.",
+    "Implementing production-grade authentication/authorization."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

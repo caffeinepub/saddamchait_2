@@ -1,0 +1,55 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Make Signup button functional with submit, validation, and UI-only success feedback",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Convert the Signup CTA into a real form submission that runs a submit handler and never behaves like a dead button (UI-only).",
+      "acceptanceCriteria": [
+        "Clicking \"Signup\" triggers a submit handler (e.g., form onSubmit) and prevents default page reload behavior.",
+        "No backend logic is added (no actor calls, no external services)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/screens/SignupScreen.tsx",
+          "operation": "modify",
+          "description": "Wrap the signup inputs in a <form> with an onSubmit handler that calls preventDefault; change the green \"Signup\" button to type=\"submit\" and remove the current no-op click handler so the CTA always triggers form submission in draft mode (UI-only). Use existing shadcn-ui Button/Input/Select components for the form controls; verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add required-field validation on submit with inline, field-specific error messages that clear/update as users fix inputs and re-submit.",
+      "acceptanceCriteria": [
+        "Submitting with missing required fields displays inline, field-specific error text in English (no generic silent failure).",
+        "Errors are cleared/updated appropriately when the user fixes inputs and re-submits.",
+        "If Relation is \"Other\", the custom relation text input is validated as required and shows an inline error when empty.",
+        "Password and Confirm Password are validated so that missing values and mismatches show inline errors."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/screens/SignupScreen.tsx",
+          "operation": "modify",
+          "description": "Implement a submit-time validation function that checks all UI-required fields (at minimum: Profile Photo, Relation, Age, Mobile Number) plus signup-critical fields (Email, Password, Confirm Password) and sets the existing errors state with per-field messages. Add inline error rendering next to any fields that currently lack it (e.g., email/password/confirm/customRelation/profileImage/name if treated as required), and add onChange/onValueChange handlers that clear the specific field error when the user edits that field. Use existing shadcn-ui Input/Select/Label components for consistent inline error placement; verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "When validation passes, show a clear UI-only success confirmation and provide a working next action (Back to Login).",
+      "acceptanceCriteria": [
+        "When all required fields are valid, the user sees a clear English success confirmation (e.g., \"Signup successful / Pending approval\").",
+        "Success behavior does not add any backend logic or paid services.",
+        "After success, the user has an obvious next action (e.g., a \"Back to Login\" button) that works."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/screens/SignupScreen.tsx",
+          "operation": "modify",
+          "description": "Add a local success state (e.g., isSubmitted/isSuccess). If submit validation passes, switch the Signup screen UI to a simple success view or show a prominent success message on the Signup screen. Prefer using the existing shadcn-ui Alert component for the success confirmation text (e.g., \"Signup successful / Pending approval\") and include a \"Back to Login\" Button wired to onNavigateToLogin. Verify the component's usage instructions before implementing."
+        }
+      ]
+    }
+  ]
+}
