@@ -240,6 +240,20 @@ export async function updateUserRole(uid: string, role: 'user' | 'admin'): Promi
   console.log('updateUserRole - Updated role for uid:', uid, 'role:', role);
 }
 
+// Helper: Delete user profile (super_admin only)
+export async function deleteUserProfile(uid: string): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, deleteDoc } = modules.firestore;
+  
+  const userDocRef = doc(db, 'users', uid);
+  await deleteDoc(userDocRef);
+  
+  console.log('deleteUserProfile - Deleted profile for uid:', uid);
+}
+
 // Helper: Sign up with email and password
 export async function signUpWithEmail(
   email: string,
@@ -248,13 +262,17 @@ export async function signUpWithEmail(
     name: string;
     photoURL: string;
   }
-): Promise<{ success: boolean; error?: string; isProfileError?: boolean }> {
+): Promise<{ success: boolean; error?: string; isProfileError?: boolean; isFirstUser?: boolean }> {
   try {
     await waitForFirebase();
     const auth = getAuth();
     
     const modules = await loadFirebaseModules();
     const { createUserWithEmailAndPassword, signOut } = modules.auth;
+    
+    // Check if this is the first user BEFORE creating auth account
+    const firstUser = await isFirstUser();
+    console.log('signUpWithEmail - Is first user:', firstUser);
     
     // Step 1: Create Firebase Auth user
     let userCredential: UserCredential;
@@ -283,11 +301,15 @@ export async function signUpWithEmail(
       };
     }
 
-    // Step 3: Sign out immediately (unapproved users should not remain logged in)
-    await signOut(auth);
-    console.log('signUpWithEmail - User signed out after successful signup');
-
-    return { success: true };
+    // Step 3: If first user, keep them logged in; otherwise sign out
+    if (firstUser) {
+      console.log('signUpWithEmail - First user, keeping logged in');
+      return { success: true, isFirstUser: true };
+    } else {
+      await signOut(auth);
+      console.log('signUpWithEmail - Not first user, signed out after successful signup');
+      return { success: true, isFirstUser: false };
+    }
   } catch (error: any) {
     console.error('signUpWithEmail - Unexpected error:', error);
     return { success: false, error: error.code || 'unknown' };
@@ -298,13 +320,13 @@ export async function signUpWithEmail(
 export async function signInWithEmail(
   email: string,
   password: string
-): Promise<{ success: boolean; error?: string; needsApproval?: boolean }> {
+): Promise<{ success: boolean; error?: string; needsApproval?: boolean; uid?: string }> {
   try {
     await waitForFirebase();
     const auth = getAuth();
     
     const modules = await loadFirebaseModules();
-    const { signInWithEmailAndPassword, signOut } = modules.auth;
+    const { signInWithEmailAndPassword } = modules.auth;
     
     console.log('signInWithEmail - Attempting authentication for:', email);
     const userCredential: UserCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -312,26 +334,8 @@ export async function signInWithEmail(
 
     console.log('signInWithEmail - Authenticated user uid:', user.uid);
 
-    // ALWAYS fetch fresh approval state from server using users/{uid}
-    const profile = await getUserProfile(user.uid);
-
-    console.log('signInWithEmail - Profile fetched:', profile);
-
-    // Check if profile exists and approved is exactly true
-    if (!profile) {
-      console.log('signInWithEmail - Profile missing for uid:', user.uid, '- signing out');
-      await signOut(auth);
-      return { success: false, needsApproval: true };
-    }
-
-    if (profile.approved !== true) {
-      console.log('signInWithEmail - Not approved (approved =', profile.approved, ') for uid:', user.uid, '- signing out');
-      await signOut(auth);
-      return { success: false, needsApproval: true };
-    }
-
-    console.log('signInWithEmail - Login successful, user is approved for uid:', user.uid);
-    return { success: true };
+    // Return success with uid - let the UI handle profile fetching and routing
+    return { success: true, uid: user.uid };
   } catch (error: any) {
     console.error('signInWithEmail - Error:', error);
     return { success: false, error: error.code || 'unknown' };

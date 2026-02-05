@@ -12,9 +12,10 @@ import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
 
 interface SignupScreenProps {
   onNavigateToLogin: () => void;
+  onSignupSuccess: (redirectTo: '/admin/users' | '/pending-approval') => void;
 }
 
-export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
+export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: SignupScreenProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +24,6 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
   const [showCamera, setShowCamera] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,33 +111,28 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Profile Photo validation
     if (!profileImage) {
       newErrors.profileImage = 'Profile photo is required';
     } else if (!profileImage.isValid) {
       newErrors.profileImage = profileImage.error || 'Invalid profile photo';
     }
 
-    // Name validation
     if (!name.trim()) {
       newErrors.name = 'Name is required';
     }
 
-    // Email validation
     if (!email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    // Password validation
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
-    // Confirm Password validation
     if (!confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (password !== confirmPassword) {
@@ -165,7 +160,14 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
       });
 
       if (result.success) {
-        setIsSubmitted(true);
+        // Redirect based on whether this was the first user
+        if (result.isFirstUser) {
+          console.log('SignupScreen - First user, redirecting to /admin/users');
+          onSignupSuccess('/admin/users');
+        } else {
+          console.log('SignupScreen - Not first user, redirecting to /pending-approval');
+          onSignupSuccess('/pending-approval');
+        }
       } else if (result.error) {
         const errorMessage = getFirebaseErrorMessage(result.error);
         
@@ -184,40 +186,6 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
       setIsSubmitting(false);
     }
   };
-
-  // Success screen
-  if (isSubmitted) {
-    return (
-      <AuthLayout>
-        <div className="w-full space-y-6">
-          <div className="space-y-4 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <CheckCircle2 className="h-8 w-8 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight">Signup Successful!</h1>
-              <p className="text-sm text-muted-foreground">
-                Your account is pending approval. You will be notified once your account is activated.
-              </p>
-            </div>
-          </div>
-
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>What's next?</AlertTitle>
-            <AlertDescription>
-              Our team will review your application and activate your account within 24-48 hours.
-              You'll receive an email notification once approved.
-            </AlertDescription>
-          </Alert>
-
-          <Button onClick={onNavigateToLogin} className="w-full">
-            Back to Login
-          </Button>
-        </div>
-      </AuthLayout>
-    );
-  }
 
   if (showCamera) {
     return (
@@ -293,7 +261,7 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
     <AuthLayout>
       <div className="w-full space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Admin Portal</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Saddam Chat</h1>
           <p className="text-sm text-muted-foreground">
             Create your account to get started.
           </p>
@@ -307,7 +275,6 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
             </Alert>
           )}
 
-          {/* Profile Photo Section */}
           <div className="space-y-2">
             <Label>Profile Photo *</Label>
             <p className="text-xs text-muted-foreground">

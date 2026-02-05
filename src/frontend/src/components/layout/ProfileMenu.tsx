@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, User, Settings, Users } from 'lucide-react';
 import { signOutUser } from '@/lib/firebase';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -25,6 +25,7 @@ interface ProfileMenuProps {
 export default function ProfileMenu({ userProfile, onNavigate, children }: ProfileMenuProps) {
   const queryClient = useQueryClient();
   const isAdmin = userProfile.role === 'admin' || userProfile.role === 'super_admin';
+  const isSuperAdmin = userProfile.role === 'super_admin';
 
   const handleLogout = async () => {
     try {
@@ -36,8 +37,16 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
     }
   };
 
-  const handleOpenAdminDashboard = () => {
+  const handleMyProfile = () => {
+    onNavigate('/profile');
+  };
+
+  const handleAdminDashboard = () => {
     onNavigate('/admin');
+  };
+
+  const handleUserManagement = () => {
+    onNavigate('/admin/users');
   };
 
   return (
@@ -58,15 +67,26 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
+        <DropdownMenuItem onClick={handleMyProfile}>
+          <User className="mr-2 h-4 w-4" />
+          My Profile
+        </DropdownMenuItem>
+        
         {isAdmin && (
-          <>
-            <DropdownMenuItem onClick={handleOpenAdminDashboard}>
-              <Settings className="mr-2 h-4 w-4" />
-              Open Admin Dashboard
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
+          <DropdownMenuItem onClick={handleAdminDashboard}>
+            <Settings className="mr-2 h-4 w-4" />
+            Admin Dashboard
+          </DropdownMenuItem>
         )}
+        
+        {isSuperAdmin && (
+          <DropdownMenuItem onClick={handleUserManagement}>
+            <Users className="mr-2 h-4 w-4" />
+            User Management
+          </DropdownMenuItem>
+        )}
+        
+        <DropdownMenuSeparator />
         
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />

@@ -1,190 +1,94 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T22:43:16.202Z",
+  "generatedAt": "2026-02-05T23:20:52.993Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 9,
-    "implemented": 9,
+    "total": 5,
+    "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Align the Firestore user document schema to exactly `users/{uid}` with fields: `name` (string), `email` (string), `photoURL` (string), `role` (\"user\" | \"admin\" | \"super_admin\"), `approved` (boolean), and `createdAt` (Firestore timestamp). Ensure signup writes these fields and that subsequent profile reads in the app use these fields.",
+        "summary": "Replace all user-facing occurrences of the string \"Admin Portal\" with \"Saddam Chat\" across the frontend, including (at minimum) the app header, screen titles/headings, and the HTML document title/meta in frontend/index.html.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/lib/firebaseTypes.ts",
-          "frontend/src/lib/firebase.ts",
-          "frontend/src/screens/SignupScreen.tsx",
-          "frontend/src/screens/HomeScreen.tsx"
+          "frontend/index.html",
+          "frontend/src/components/layout/AppHeader.tsx",
+          "frontend/src/screens/LoginScreen.tsx",
+          "frontend/src/screens/SignupScreen.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/lib/firebaseTypes.ts",
-          "frontend/src/lib/firebase.ts",
-          "frontend/src/screens/SignupScreen.tsx",
-          "frontend/src/screens/HomeScreen.tsx"
+          "frontend/index.html",
+          "frontend/src/components/layout/AppHeader.tsx",
+          "frontend/src/screens/LoginScreen.tsx",
+          "frontend/src/screens/SignupScreen.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Implement the first-ever signup rule: when the users collection has no users, the first created account must be assigned `role = \"super_admin\"` and `approved = true`; all subsequent signups must be assigned `role = \"user\"` and `approved = false`.",
+        "summary": "Update post-login redirect logic so that after a successful login: super_admin redirects to /chat by default; admin redirects to /chat; approved non-admin users redirect to /chat; only unapproved non-admin users redirect to /pending-approval. Ensure admin/super_admin never get sent to the Pending Approval screen due to an approval flag check order.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/lib/firebase.ts",
-          "frontend/LIVE_SMOKE_TEST.md"
+          "frontend/src/screens/LoginScreen.tsx",
+          "frontend/src/lib/postLoginRedirect.ts"
         ],
         "matchedFiles": [
-          "frontend/src/lib/firebase.ts"
+          "frontend/src/screens/LoginScreen.tsx",
+          "frontend/src/lib/postLoginRedirect.ts"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Add a global header that is displayed on all pages in the single app. Header layout: left side shows app logo + app name; right side shows the current user’s profile picture (clickable) when authenticated.",
+        "summary": "Ensure the User Management screen at route /admin/users is accessible from the Chat experience via the header dropdown menu for super_admin users (i.e., from the Chat screen header menu, super_admin can navigate to /admin/users).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/layout/AppHeader.tsx",
-          "frontend/src/hooks/useFirebaseAuthUser.ts",
-          "frontend/src/hooks/useFirestoreUserProfile.ts",
-          "frontend/src/App.tsx"
+          "frontend/src/components/layout/ProfileMenu.tsx",
+          "frontend/src/components/layout/AppHeader.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/layout/AppHeader.tsx",
-          "frontend/src/hooks/useFirebaseAuthUser.ts",
-          "frontend/src/hooks/useFirestoreUserProfile.ts",
-          "frontend/src/App.tsx"
+          "frontend/src/components/layout/AppHeader.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Implement the profile popup opened by clicking the header avatar. The popup must always show the user’s name and role. If the role is `admin` or `super_admin`, also show an \"Open Admin Dashboard\" button. Always show a \"Logout\" button that signs the user out and returns them to the login screen.",
+        "summary": "Remove any routing/guard behavior that blocks super_admin or admin users behind dashboard-only screens (e.g., do not force admins to land on /admin or require visiting /admin before accessing other allowed routes). Admin and super_admin should be able to access /chat and other non-authenticated routes permitted by login without being redirected to dashboard-only pages.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/layout/ProfileMenu.tsx",
-          "frontend/src/components/layout/AppHeader.tsx",
-          "frontend/src/lib/firebase.ts",
+          "frontend/src/screens/LoginScreen.tsx",
           "frontend/src/App.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/layout/ProfileMenu.tsx",
-          "frontend/src/components/layout/AppHeader.tsx",
-          "frontend/src/lib/firebase.ts",
-          "frontend/src/App.tsx"
+          "frontend/src/screens/LoginScreen.tsx"
         ]
       },
       {
         "id": "REQ-5",
-        "summary": "Add an in-app Admin Dashboard area within the same application (no separate admin app). Access must be restricted to users whose Firestore role is `admin` or `super_admin`. Include the following pages/sections: Dashboard (stats), Users list, Chats, Reports, Settings.",
+        "summary": "Ensure super_admin always has access to the user list (/admin/users) without being routed through or blocked by the approval flow (Pending Approval). Any approval gating must apply only to non-admin users.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/screens/admin/AdminLayout.tsx",
-          "frontend/src/screens/admin/AdminDashboardScreen.tsx",
-          "frontend/src/screens/admin/AdminUsersScreen.tsx",
-          "frontend/src/screens/admin/AdminChatsScreen.tsx",
-          "frontend/src/screens/admin/AdminReportsScreen.tsx",
-          "frontend/src/screens/admin/AdminSettingsScreen.tsx",
           "frontend/src/App.tsx",
-          "frontend/src/components/auth/AdminRouteGuard.tsx"
+          "frontend/src/components/auth/SuperAdminRouteGuard.tsx",
+          "frontend/src/lib/postLoginRedirect.ts"
         ],
         "matchedFiles": [
-          "frontend/src/screens/admin/AdminLayout.tsx",
-          "frontend/src/screens/admin/AdminDashboardScreen.tsx",
-          "frontend/src/screens/admin/AdminUsersScreen.tsx",
-          "frontend/src/screens/admin/AdminChatsScreen.tsx",
-          "frontend/src/screens/admin/AdminReportsScreen.tsx",
-          "frontend/src/screens/admin/AdminSettingsScreen.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/components/auth/AdminRouteGuard.tsx"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Implement the Users list page in the Admin Dashboard that lists all user documents from `users` (including `super_admin` users) and supports user management actions with role-based permissions: Admins can approve users, block users, and change role between `user` and `admin`. Super admins can do all admin actions and can promote users to admin. Enforce that \"super_admin is also a normal user with extra permissions\" and appears in the user list.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/lib/firebase.ts",
-          "frontend/src/screens/admin/AdminUsersScreen.tsx",
-          "frontend/src/hooks/useFirestoreUsersList.ts",
-          "frontend/src/components/admin/UserRowActions.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/lib/firebase.ts",
-          "frontend/src/screens/admin/AdminUsersScreen.tsx",
-          "frontend/src/hooks/useFirestoreUsersList.ts",
-          "frontend/src/components/admin/UserRowActions.tsx"
-        ]
-      },
-      {
-        "id": "REQ-7",
-        "summary": "Update Firestore security rules to enforce the role-based permissions required by the admin dashboard and user management, while keeping regular users limited to reading/updating only their own profile (excluding role/approved changes). Ensure admins can read all users for listing. Ensure rules restrict any attempt to set `role` to `super_admin` via client writes and restrict modifications to existing `super_admin` users’ roles/approval by non-super_admins.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/firestore.rules",
-          "frontend/DEPLOYMENT.md"
-        ],
-        "matchedFiles": [
-          "frontend/firestore.rules"
-        ]
-      },
-      {
-        "id": "REQ-8",
-        "summary": "Apply a clean, WhatsApp-style, mobile-friendly UI across the unified app (auth screens, header, home, and admin dashboard) with consistent spacing, typography, and a green-forward palette (avoid blue/purple). Keep all user-facing text in English.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/index.css",
-          "frontend/tailwind.config.js",
-          "frontend/src/components/auth/AuthLayout.tsx",
-          "frontend/src/screens/admin/AdminLayout.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/index.css",
-          "frontend/src/screens/admin/AdminLayout.tsx"
-        ]
-      },
-      {
-        "id": "REQ-9",
-        "summary": "Add a static app logo image asset and render it in the global header next to the app name.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/public/assets/generated/app-logo.dim_256x256.png",
-          "frontend/src/components/layout/AppHeader.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/public/assets/generated/app-logo.dim_256x256.png",
-          "frontend/src/components/layout/AppHeader.tsx"
+          "frontend/src/lib/postLoginRedirect.ts"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/firestore.rules",
-    "frontend/public/assets/generated/app-logo.dim_256x256.png",
-    "frontend/src/App.tsx",
-    "frontend/src/components/admin/UserRowActions.tsx",
-    "frontend/src/components/auth/AdminRouteGuard.tsx",
+    "frontend/index.html",
     "frontend/src/components/layout/AppHeader.tsx",
-    "frontend/src/components/layout/ProfileMenu.tsx",
-    "frontend/src/hooks/useFirebaseAuthUser.ts",
-    "frontend/src/hooks/useFirestoreUserProfile.ts",
-    "frontend/src/hooks/useFirestoreUsersList.ts",
-    "frontend/src/index.css",
-    "frontend/src/lib/firebase.ts",
-    "frontend/src/lib/firebaseTypes.ts",
-    "frontend/src/lib/utils.ts",
-    "frontend/src/screens/HomeScreen.tsx",
+    "frontend/src/lib/postLoginRedirect.ts",
+    "frontend/src/screens/LoginScreen.tsx",
     "frontend/src/screens/SignupScreen.tsx",
-    "frontend/src/screens/admin/AdminChatsScreen.tsx",
-    "frontend/src/screens/admin/AdminDashboardScreen.tsx",
-    "frontend/src/screens/admin/AdminLayout.tsx",
-    "frontend/src/screens/admin/AdminReportsScreen.tsx",
-    "frontend/src/screens/admin/AdminSettingsScreen.tsx",
-    "frontend/src/screens/admin/AdminUsersScreen.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
