@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T22:17:46.196Z",
+  "generatedAt": "2026-02-05T04:57:12.347Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,36 +11,39 @@
     "implemented": 3,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Wire the green \"Signup\" button on the Signup screen (frontend/src/screens/SignupScreen.tsx) to a real form submit handler so it is never a dead button in draft mode (UI-only; no backend calls).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/screens/SignupScreen.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/screens/SignupScreen.tsx"
-        ]
-      },
-      {
         "id": "REQ-2",
-        "summary": "On Signup submit, validate required fields and show inline error messages next to the corresponding fields when missing/invalid. At minimum, validate all fields that are presented as required in the UI (e.g., fields marked with \"*\") and any additional signup-critical fields present on the form (email/password/confirm password).",
+        "summary": "Update the Firebase login approval check so that every login attempt performs a fresh Firestore server read for the authenticated user profile at the exact document path `users/{auth.uid}` (where `auth.uid` is Firebase Auth `currentUser.uid` / `user.uid`), and uses that document’s `approved` boolean field as the sole source of truth for approval gating.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/screens/SignupScreen.tsx"
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/screens/LoginScreen.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/screens/SignupScreen.tsx"
+          "frontend/src/lib/firebase.ts"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "If Signup validation passes (all required fields are filled and valid), show a temporary success response in the UI (no backend). Implement either (A) navigation to a simple \"Signup successful / Pending approval\" screen/state, or (B) a clear success message on the Signup screen using existing UI components (e.g., shadcn Alert).",
+        "summary": "Remove/disable any email-based profile lookup and any cached approval logic in the login flow; ensure there are no Firestore queries by email and no reuse of prior approval state between logins.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/screens/SignupScreen.tsx"
+          "frontend/src/lib/firebase.ts"
         ],
         "matchedFiles": [
-          "frontend/src/screens/SignupScreen.tsx"
+          "frontend/src/lib/firebase.ts"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Update the LIVE smoke test/deployment verification guidance to explicitly validate the new login behavior (fresh server read every login, `users/{auth.uid}` only, no email lookup, no cached approval state) and reference the expected console/log indicators for troubleshooting.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/LIVE_SMOKE_TEST.md",
+          "frontend/DEPLOYMENT.md"
+        ],
+        "matchedFiles": [
+          "frontend/LIVE_SMOKE_TEST.md",
+          "frontend/DEPLOYMENT.md"
         ]
       }
     ]
@@ -50,7 +53,9 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/screens/SignupScreen.tsx",
+    "frontend/DEPLOYMENT.md",
+    "frontend/LIVE_SMOKE_TEST.md",
+    "frontend/src/lib/firebase.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

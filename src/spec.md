@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Make the Signup button functional in UI-only draft mode by adding form submission handling, field validation with inline errors, and a clear success confirmation.
+**Goal:** Fix login approval gating to always use a fresh, server-forced Firestore read of `users/{auth.uid}` and gate access solely on that document’s `approved` boolean.
 
 **Planned changes:**
-- Wire the green “Signup” button on `frontend/src/screens/SignupScreen.tsx` to a real form submit handler (e.g., `form onSubmit`) that prevents default page reload and performs no backend calls.
-- Add client-side validation on submit for required fields (at minimum all “*” fields plus email/password/confirm password), showing inline, field-specific English error messages and updating/clearing them appropriately on re-submit.
-- Add conditional validation: when Relation is “Other”, require the custom relation text input and show an inline error when empty.
-- Validate password and confirm password for missing values and mismatch, with inline errors.
-- When validation passes, show a clear UI-only success state/message (“Signup successful / Pending approval”) and provide an obvious working next action (e.g., “Back to Login”).
+- Update the login approval check to fetch `doc(db, 'users', uid)` (where `uid` is the authenticated Firebase Auth user UID) on every login attempt using a server-forced read (no cache-eligible reads).
+- Use only `users/{uid}.approved === true` as the approval source of truth; if the doc is missing or `approved !== true`, sign the user out and show: "Your account is pending admin approval."
+- Remove/disable any email-based user profile lookup and any reuse of prior approval state between logins (no `where('email'...)`, no cached/stored approval flags).
+- Update LIVE smoke test / deployment verification guidance to confirm: fresh server read each login, document path `users/{auth.uid}` only, no email lookup, and no cached approval state; include expected console/log indicators for troubleshooting.
 
-**User-visible outcome:** Clicking “Signup” submits the form without reloading the page; users see inline errors for missing/invalid inputs, and when everything is valid they see a clear success confirmation with a working next step (such as returning to Login).
+**User-visible outcome:** On each login attempt, approval status reflects the current `approved` value in Firestore `users/{auth.uid}` immediately (even if toggled by an admin between attempts), and unapproved/missing profiles are signed out with the pending-approval message.

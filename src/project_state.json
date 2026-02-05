@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 22,
-  "summary": "saddamchait private family chat app: mobile-first React UI with Login/Signup screens, upgraded Signup form fields (profile photo + relation/age/mobile), password reset UI, and interactive form validation/submit behavior (UI-only in draft; no backend or paid features).",
+  "projectStateVersion": 52,
+  "summary": "Mobile-first private family chat app “saddamchait” with React UI and a structured ICP (Motoko) backend + React frontend template; Firebase (Spark/free) Email/Password authentication remains integrated into the existing auth screens with Firestore-backed approval-gated access (pending approval; first user bootstraps as Super Admin) and the Forgot Password flow disabled in favor of admin-managed resets, while the ICP backend now also includes explicit Motoko authorization/access-control and user-approval modules integrated into the main canister.",
   "existing_features": [
     {
       "id": "IF-1",
@@ -93,85 +93,132 @@
       "version": 1
     },
     {
-      "id": "feature-wire-the-green-signup-button-on-the-signup-screen-frontend-src-screens-signupscreen-tsx-to-a-real-form-submit-handler-so-it-is-never-a-dead-button-in-draft-mode-ui-only-no-backend-calls",
-      "title": "Wire the green \"Signup\" button on the Signup screen (frontend/src/screens/SignupScreen.tsx) to a real form submit handler so it is never a dead button in draft mode (UI-only; no backend calls).",
+      "id": "IF-9",
+      "title": "Firebase Web SDK Email/Password auth integrated into existing auth screens",
+      "synonyms": [
+        "Firebase Auth",
+        "email/password login",
+        "firebase web sdk"
+      ],
+      "description": "Adds Firebase initialization and wires existing Login/Signup screens to Firebase Email/Password authentication without introducing new screens or changing the overall UI structure.",
+      "reqIds": [
+        "AR-1",
+        "AR-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "IF-10",
+      "title": "Approval-gated access model backed by Firestore user records",
+      "synonyms": [
+        "pending approval gating",
+        "approved users only",
+        "firestore user profile"
+      ],
+      "description": "On signup, persists an application-level user record (e.g., status/role) with status=\"pending approval\" and blocks access/login until approved, showing exactly \"Account pending approval\" for unapproved users.",
+      "reqIds": [
+        "AR-2",
+        "AR-5",
+        "AR-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "IF-11",
+      "title": "First-user bootstrap to Super Admin role",
+      "synonyms": [
+        "first signup is admin",
+        "super admin bootstrap"
+      ],
+      "description": "Automatically assigns the first successfully registered user the \"Super Admin\" role (persisted in the same user record used for approval gating) and supports both PREVIEW and LIVE environments.",
+      "reqIds": [
+        "AR-3",
+        "AR-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "IF-12",
+      "title": "Forgot Password flow disabled; admin-managed password resets only",
+      "synonyms": [
+        "disable password reset email",
+        "no firebase reset email"
+      ],
+      "description": "Updates the existing Password Reset flow to remove/disable Firebase email reset behavior and replaces confirmation copy to state that password resets are handled manually by an Admin only (no new screens).",
+      "reqIds": [
+        "AR-4",
+        "AR-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "IF-13",
+      "title": "Motoko authorization/access-control and user-approval modules integrated into backend canister",
+      "synonyms": [
+        "backend authorization",
+        "access control mixin",
+        "user approval canister logic"
+      ],
+      "description": "Adds Motoko-side authorization primitives (access-control + authorization mixin) and user-approval logic modules, wired into the backend main canister to support role/approval-based gating at the canister layer.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-14",
+      "title": "Developer-facing clarification note on auth constraints (Internet Identity vs Firebase Auth)",
+      "synonyms": [
+        "auth constraints documentation",
+        "II-only constraint note",
+        "firebase auth confirmation note"
+      ],
+      "description": "Adds a developer-facing comment/README/spec note clarifying the platform constraint that only Internet Identity is supported for third-party authentication and explicitly requesting confirmation on whether Firebase Auth remains required despite this limitation, without restructuring the app or adding screens.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-on-signup-submit-validate-required-fields-and-show-inline-error-messages-next-to-the-corresponding-fields-when-missing-invalid-at-minimum-validate-all-fields-that-are-presented-as-required-in-the-ui-e-g-fields-marked-with-and-any-additional-signup-critical-fields-present-on-the-form-email-password-confirm-password",
-      "title": "On Signup submit, validate required fields and show inline error messages next to the corresponding fields when missing/invalid. At minimum, validate all fields that are presented as required in the UI (e.g., fields marked with \"*\") and any additional signup-critical fields present on the form (email/password/confirm password).",
+      "id": "feature-update-the-firebase-login-approval-check-so-that-every-login-attempt-performs-a-fresh-firestore-server-read-for-the-authenticated-user-profile-at-the-exact-document-path-users-auth-uid-where-auth-uid-is-firebase-auth-currentuser-uid-user-uid-and-uses-that-document-s-approved-boolean-field-as-the-sole-source-of-truth-for-approval-gating",
+      "title": "Update the Firebase login approval check so that every login attempt performs a fresh Firestore server read for the authenticated user profile at the exact document path `users/{auth.uid}` (where `auth.uid` is Firebase Auth `currentUser.uid` / `user.uid`), and uses that document’s `approved` boolean field as the sole source of truth for approval gating.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-if-signup-validation-passes-all-required-fields-are-filled-and-valid-show-a-temporary-success-response-in-the-ui-no-backend-implement-either-a-navigation-to-a-simple-signup-successful-pending-approval-screen-state-or-b-a-clear-success-message-on-the-signup-screen-using-existing-ui-components-e-g-shadcn-alert",
-      "title": "If Signup validation passes (all required fields are filled and valid), show a temporary success response in the UI (no backend). Implement either (A) navigation to a simple \"Signup successful / Pending approval\" screen/state, or (B) a clear success message on the Signup screen using existing UI components (e.g., shadcn Alert).",
+      "id": "feature-remove-disable-any-email-based-profile-lookup-and-any-cached-approval-logic-in-the-login-flow-ensure-there-are-no-firestore-queries-by-email-and-no-reuse-of-prior-approval-state-between-logins",
+      "title": "Remove/disable any email-based profile lookup and any cached approval logic in the login flow; ensure there are no Firestore queries by email and no reuse of prior approval state between logins.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-update-the-live-smoke-test-deployment-verification-guidance-to-explicitly-validate-the-new-login-behavior-fresh-server-read-every-login-users-auth-uid-only-no-email-lookup-no-cached-approval-state-and-reference-the-expected-console-log-indicators-for-troubleshooting",
+      "title": "Update the LIVE smoke test/deployment verification guidance to explicitly validate the new login behavior (fresh server read every login, `users/{auth.uid}` only, no email lookup, no cached approval state) and reference the expected console/log indicators for troubleshooting.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Upgrade Signup UI: mandatory profile photo with Gallery/Camera, preview, resize/compress constraints (512x512, JPEG 70%, <200KB) and placeholder face-validation messaging",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Add Relation field dropdown (Father/Mother/Brother/Sister/Son/Daughter/Other) with conditional custom text input when 'Other' is selected",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Add Age field (required) with minimum age 18 and inline validation messaging",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Add Mobile Number field (required) with country code selector + number input; relaxed validation to only require 10 digits and mark as 'unverified' (no real-number/carrier validation)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Add Login 'Forgot password?' link and UI-only password reset screen (email input, submit, success placeholder; no backend/email send)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Wire Signup button to real submit handler (UI-only): validate required fields, show inline errors, and on success show temporary success response (message or 'Signup successful / Pending approval' screen)",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
+  "new_feature_requests": [],
   "architectural_notes": [
     "Project structured as ICP canisters with separate backend (Motoko) and frontend (React) configurations and generated declaration files for typed actor calls.",
     "Frontend auth uses Internet Identity; custom linting/rules enforce correct II provider usage and avoid problematic query-key bigint usage.",
     "shadcn/ui components are vendored into the repository with shared UI utilities and Tailwind/PostCSS configuration.",
     "Build/deploy is standardized via a build-template (Dockerfile, deploy script, canister yaml templates) and supporting Node scripts (image prune/resize).",
     "Frontend includes a camera capture hook and a dedicated profile image processing utility module for handling user-provided images (e.g., avatars).",
-    "Auth UI is implemented as dedicated screens (Login/Signup/Password Reset) layered on top of the existing Internet Identity integration.",
     "Build template now includes icp-cli/GitHub-export oriented configuration (icp.yaml plus per-canister canister.yaml templates) aligned with deploy.sh and workspace packaging for reproducible exports.",
-    "Project is a private family chat app (saddamchait) with a strict FREE-only scope: no paid features, no recommendations.",
-    "Signup image processing requirements are client-side: resize to max 512x512 (keep aspect ratio), compress to JPEG at ~70% quality, target final size <200KB, and show preview before signup.",
-    "Mobile number validation during signup is minimal (10 digits only), numbers are treated as 'unverified' with verification deferred to future scope."
+    "App now targets Firebase backend (Spark/free) for auth + Firestore; integrate Firebase Email/Password and store per-user approval status/roles to gate login (pending approval until admin approves; first user becomes super admin).",
+    "Frontend now includes Firebase initialization/modules (firebase.ts, types, error mapping) and uses Firebase Email/Password auth for existing auth screens.",
+    "User approval/role gating is implemented via Firestore-backed application user records (status/role) that gate login and bootstrap first user as Super Admin.",
+    "Build template/core infrastructure and Motoko authorization/user-approval modules have been revised and versioned (core-infrastructure v1.0.2, authorization v4.0.0, user-approval v3.0.0), with corresponding updates across backend modules and build-template assets."
   ],
   "known_issues": [
-    "Signup button is currently non-functional (no submit handler wired)."
+    "LIVE login gating bug: app still shows \"Your account is pending admin approval\" even when Firestore doc exists at users/{auth.uid} with approved:true; must enforce fresh getDoc() on every login using users/{auth.uid} only (no email lookup, no cached approval state)."
   ],
   "isFixRequest": true,
-  "gameProjectType": "none",
   "projectName": "saddamchait",
   "clarification_mode": "instant",
   "clarification_rounds": 0

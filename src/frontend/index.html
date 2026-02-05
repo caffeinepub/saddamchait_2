@@ -3,6 +3,26 @@
         <meta charset='UTF-8' />
         <meta name='viewport' content='width=device-width, initial-scale=1.0' />
         <title>saddamchait</title>
+        <!-- Firebase SDK via CDN -->
+        <script type="module">
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+            import { getAuth } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+            import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+            
+            const firebaseConfig = {
+                apiKey: "AIzaSyDYBU1V_iMDZxlj4arOQAsJG4xZDx1Se-I",
+                authDomain: "caffeine-saddam-chat.firebaseapp.com",
+                projectId: "caffeine-saddam-chat",
+                storageBucket: "caffeine-saddam-chat.firebasestorage.app",
+                messagingSenderId: "232235996367",
+                appId: "1:232235996367:web:1fd41693b4d825c0e493ba"
+            };
+            
+            const app = initializeApp(firebaseConfig);
+            window.__FIREBASE_APP__ = app;
+            window.__FIREBASE_AUTH__ = getAuth(app);
+            window.__FIREBASE_FIRESTORE__ = getFirestore(app);
+        </script>
     </head>
     <body>
         <div id='root'></div>

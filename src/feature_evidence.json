@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-wire-the-green-signup-button-on-the-signup-screen-frontend-src-screens-signupscreen-tsx-to-a-real-form-submit-handler-so-it-is-never-a-dead-button-in-draft-mode-ui-only-no-backend-calls",
-      "featureTitle": "Wire the green \"Signup\" button on the Signup screen (frontend/src/screens/SignupScreen.tsx) to a real form submit handler so it is never a dead button in draft mode (UI-only; no backend calls).",
+      "featureId": "feature-update-the-firebase-login-approval-check-so-that-every-login-attempt-performs-a-fresh-firestore-server-read-for-the-authenticated-user-profile-at-the-exact-document-path-users-auth-uid-where-auth-uid-is-firebase-auth-currentuser-uid-user-uid-and-uses-that-document-s-approved-boolean-field-as-the-sole-source-of-truth-for-approval-gating",
+      "featureTitle": "Update the Firebase login approval check so that every login attempt performs a fresh Firestore server read for the authenticated user profile at the exact document path `users/{auth.uid}` (where `auth.uid` is Firebase Auth `currentUser.uid` / `user.uid`), and uses that document’s `approved` boolean field as the sole source of truth for approval gating.",
       "files": [
-        "frontend/src/screens/SignupScreen.tsx"
+        "frontend/src/lib/firebase.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -13,26 +13,9 @@
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
         "github-export-icp-cli@1.0.0",
-        "camera@1.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-on-signup-submit-validate-required-fields-and-show-inline-error-messages-next-to-the-corresponding-fields-when-missing-invalid-at-minimum-validate-all-fields-that-are-presented-as-required-in-the-ui-e-g-fields-marked-with-and-any-additional-signup-critical-fields-present-on-the-form-email-password-confirm-password",
-      "featureTitle": "On Signup submit, validate required fields and show inline error messages next to the corresponding fields when missing/invalid. At minimum, validate all fields that are presented as required in the UI (e.g., fields marked with \"*\") and any additional signup-critical fields present on the form (email/password/confirm password).",
-      "files": [
-        "frontend/src/screens/SignupScreen.tsx"
-      ],
-      "components": [
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "camera@1.0.0"
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
       ],
       "testIds": [
         "REQ-2"
@@ -40,10 +23,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-if-signup-validation-passes-all-required-fields-are-filled-and-valid-show-a-temporary-success-response-in-the-ui-no-backend-implement-either-a-navigation-to-a-simple-signup-successful-pending-approval-screen-state-or-b-a-clear-success-message-on-the-signup-screen-using-existing-ui-components-e-g-shadcn-alert",
-      "featureTitle": "If Signup validation passes (all required fields are filled and valid), show a temporary success response in the UI (no backend). Implement either (A) navigation to a simple \"Signup successful / Pending approval\" screen/state, or (B) a clear success message on the Signup screen using existing UI components (e.g., shadcn Alert).",
+      "featureId": "feature-remove-disable-any-email-based-profile-lookup-and-any-cached-approval-logic-in-the-login-flow-ensure-there-are-no-firestore-queries-by-email-and-no-reuse-of-prior-approval-state-between-logins",
+      "featureTitle": "Remove/disable any email-based profile lookup and any cached approval logic in the login flow; ensure there are no Firestore queries by email and no reuse of prior approval state between logins.",
       "files": [
-        "frontend/src/screens/SignupScreen.tsx"
+        "frontend/src/lib/firebase.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -51,10 +34,34 @@
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
         "github-export-icp-cli@1.0.0",
-        "camera@1.0.0"
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
       ],
       "testIds": [
         "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-live-smoke-test-deployment-verification-guidance-to-explicitly-validate-the-new-login-behavior-fresh-server-read-every-login-users-auth-uid-only-no-email-lookup-no-cached-approval-state-and-reference-the-expected-console-log-indicators-for-troubleshooting",
+      "featureTitle": "Update the LIVE smoke test/deployment verification guidance to explicitly validate the new login behavior (fresh server read every login, `users/{auth.uid}` only, no email lookup, no cached approval state) and reference the expected console/log indicators for troubleshooting.",
+      "files": [
+        "frontend/DEPLOYMENT.md",
+        "frontend/LIVE_SMOKE_TEST.md"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

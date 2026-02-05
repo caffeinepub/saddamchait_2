@@ -9,6 +9,8 @@ import { Camera, Image as ImageIcon, X, AlertCircle, CheckCircle2 } from 'lucide
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useCamera } from '@/camera/useCamera';
 import { processProfileImage, type ProcessedImage } from '@/lib/profileImageProcessing';
+import { signUpWithEmail } from '@/lib/firebase';
+import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
 
 interface SignupScreenProps {
   onNavigateToLogin: () => void;
@@ -45,6 +47,7 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -192,11 +195,48 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (validateForm()) {
-      setIsSubmitted(true);
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      const result = await signUpWithEmail(email, password, {
+        name,
+        relation: relation === 'Other' ? customRelation : relation,
+        customRelation: relation === 'Other' ? customRelation : undefined,
+        age,
+        countryCode,
+        phoneNumber,
+        profileImageDataUrl: profileImage?.dataUrl,
+      });
+
+      if (result.success) {
+        // Only transition to success screen if both Auth AND Firestore succeeded
+        setIsSubmitted(true);
+      } else if (result.error) {
+        // Handle both Auth errors and Firestore profile creation errors
+        const errorMessage = getFirebaseErrorMessage(result.error);
+        
+        // Show profile creation errors prominently
+        if (result.isProfileError) {
+          setErrors({ 
+            submit: `${errorMessage} Your account was created but profile setup failed. Please contact support.` 
+          });
+        } else {
+          setErrors({ submit: errorMessage });
+        }
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setErrors({ submit: 'An unexpected error occurred. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -315,6 +355,14 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* General error message */}
+          {errors.submit && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.submit}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Profile Photo Section */}
           <div className="space-y-2">
             <Label>Profile Photo *</Label>
@@ -549,8 +597,8 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
             )}
           </div>
 
-          <Button type="submit" className="w-full">
-            Signup
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating Account...' : 'Signup'}
           </Button>
         </form>
 

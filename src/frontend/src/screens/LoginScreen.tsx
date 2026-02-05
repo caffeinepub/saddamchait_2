@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
+import { signInWithEmail } from '@/lib/firebase';
+import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
 
 interface LoginScreenProps {
   onNavigateToSignup: () => void;
@@ -12,11 +16,39 @@ interface LoginScreenProps {
 export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // UI only - no backend logic yet
-    console.log('Login attempt:', { email, password });
+    setError('');
+    setIsLoggingIn(true);
+
+    try {
+      console.log('LoginScreen - Attempting login for:', email);
+      const result = await signInWithEmail(email, password);
+      console.log('LoginScreen - Login result:', result);
+
+      if (result.success) {
+        // Login successful - user is approved
+        console.log('LoginScreen - Login successful, user is approved');
+        // TODO: Navigate to main app or dashboard
+      } else if (result.needsApproval) {
+        // User exists but not approved or profile missing
+        console.log('LoginScreen - User needs approval');
+        setError('Your account is pending admin approval.');
+      } else if (result.error) {
+        // Firebase error
+        console.log('LoginScreen - Firebase error:', result.error);
+        const errorMessage = getFirebaseErrorMessage(result.error);
+        setError(errorMessage);
+      }
+    } catch (err) {
+      console.error('LoginScreen - Unexpected error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   return (
@@ -30,6 +62,13 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: L
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -37,7 +76,10 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: L
               type="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError('');
+              }}
               required
             />
           </div>
@@ -49,7 +91,10 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: L
               type="password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError('');
+              }}
               required
             />
           </div>
@@ -64,8 +109,8 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: L
             </button>
           </div>
 
-          <Button type="submit" className="w-full">
-            Login
+          <Button type="submit" className="w-full" disabled={isLoggingIn}>
+            {isLoggingIn ? 'Logging in...' : 'Login'}
           </Button>
         </form>
 

@@ -1,53 +1,62 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Make Signup button functional with submit, validation, and UI-only success feedback",
+  "title": "Fix login approval gating with fresh Firestore server reads at users/{auth.uid}",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Convert the Signup CTA into a real form submission that runs a submit handler and never behaves like a dead button (UI-only).",
-      "acceptanceCriteria": [
-        "Clicking \"Signup\" triggers a submit handler (e.g., form onSubmit) and prevents default page reload behavior.",
-        "No backend logic is added (no actor calls, no external services)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/screens/SignupScreen.tsx",
-          "operation": "modify",
-          "description": "Wrap the signup inputs in a <form> with an onSubmit handler that calls preventDefault; change the green \"Signup\" button to type=\"submit\" and remove the current no-op click handler so the CTA always triggers form submission in draft mode (UI-only). Use existing shadcn-ui Button/Input/Select components for the form controls; verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
       "id": "REQ-2",
-      "summary": "Add required-field validation on submit with inline, field-specific error messages that clear/update as users fix inputs and re-submit.",
+      "summary": "Force every login attempt to perform a fresh Firestore server read from users/{auth.uid} and gate login solely on that document’s approved boolean.",
       "acceptanceCriteria": [
-        "Submitting with missing required fields displays inline, field-specific error text in English (no generic silent failure).",
-        "Errors are cleared/updated appropriately when the user fixes inputs and re-submits.",
-        "If Relation is \"Other\", the custom relation text input is validated as required and shows an inline error when empty.",
-        "Password and Confirm Password are validated so that missing values and mismatches show inline errors."
+        "On each login attempt, the app fetches Firestore document users/{uid} where uid equals the authenticated Firebase user UID, using a server-forced read API (not a cache-eligible read).",
+        "If the Firestore document users/{uid} exists and approved === true (boolean), login succeeds and the pending-approval error is not shown.",
+        "If the Firestore document users/{uid} is missing OR approved !== true, the app signs the user out and shows the exact message: \"Your account is pending admin approval.\"",
+        "Toggling approved: false → true in Firestore and attempting login again (without hard refresh) reflects the new approval state, proving there is no cached approval result."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/screens/SignupScreen.tsx",
+          "path": "frontend/src/lib/firebase.ts",
           "operation": "modify",
-          "description": "Implement a submit-time validation function that checks all UI-required fields (at minimum: Profile Photo, Relation, Age, Mobile Number) plus signup-critical fields (Email, Password, Confirm Password) and sets the existing errors state with per-field messages. Add inline error rendering next to any fields that currently lack it (e.g., email/password/confirm/customRelation/profileImage/name if treated as required), and add onChange/onValueChange handlers that clear the specific field error when the user edits that field. Use existing shadcn-ui Input/Select/Label components for consistent inline error placement; verify the component's usage instructions before implementing."
+          "description": "Update the login-time approval check to always read only the exact Firestore document users/{auth.uid} using a server-forced read function (e.g., Firestore server read helper rather than cache-eligible reads). Ensure the approved field is treated as the sole source of truth and must be exactly boolean true; otherwise sign the user out for that attempt."
+        },
+        {
+          "path": "frontend/src/screens/LoginScreen.tsx",
+          "operation": "modify",
+          "description": "Align the login UI flow with the updated approval gating behavior: treat the sign-in result as authoritative for showing the pending-approval message and ensure the exact message \"Your account is pending admin approval.\" is shown when the approval gate fails."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "When validation passes, show a clear UI-only success confirmation and provide a working next action (Back to Login).",
+      "summary": "Remove/disable any email-based profile lookup and any cached approval logic so login approval is never determined by anything except the fresh server read of users/{uid}.",
       "acceptanceCriteria": [
-        "When all required fields are valid, the user sees a clear English success confirmation (e.g., \"Signup successful / Pending approval\").",
-        "Success behavior does not add any backend logic or paid services.",
-        "After success, the user has an obvious next action (e.g., a \"Back to Login\" button) that works."
+        "The login flow does not query Firestore by email (no where('email'...), no reads of users collection to match email) and only reads doc(db, 'users', uid).",
+        "Approval gating does not rely on any stored/cached value (e.g., localStorage/sessionStorage/React state/React Query cache) to determine approved during login; it always uses the fresh Firestore server read result for that attempt."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/screens/SignupScreen.tsx",
+          "path": "frontend/src/lib/firebase.ts",
           "operation": "modify",
-          "description": "Add a local success state (e.g., isSubmitted/isSuccess). If submit validation passes, switch the Signup screen UI to a simple success view or show a prominent success message on the Signup screen. Prefer using the existing shadcn-ui Alert component for the success confirmation text (e.g., \"Signup successful / Pending approval\") and include a \"Back to Login\" Button wired to onNavigateToLogin. Verify the component's usage instructions before implementing."
+          "description": "Audit and refactor the login-related code paths to ensure there are no Firestore lookups by email and no reuse of prior approval state between login attempts. Keep the approval decision confined to the per-attempt server-forced read of users/{uid}."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Update LIVE smoke test/deployment verification guidance to validate fresh server read behavior, users/{auth.uid} path usage only, no email lookups, and include expected console/log indicators for troubleshooting.",
+      "acceptanceCriteria": [
+        "Smoke test documentation includes a step proving that an admin flipping approved in Firestore affects the very next login attempt without a hard refresh.",
+        "Smoke test documentation includes a step to confirm the document path is users/{auth.uid} and that no email-based lookups occur."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/LIVE_SMOKE_TEST.md",
+          "operation": "modify",
+          "description": "Update the LIVE smoke test checklist to explicitly validate that each login attempt triggers a server-forced Firestore read of users/{auth.uid} (not a cache-eligible read), that flipping approved takes effect on the next login without hard refresh, and that there are no email-based lookups. Add the exact console/log strings to look for during troubleshooting."
+        },
+        {
+          "path": "frontend/DEPLOYMENT.md",
+          "operation": "modify",
+          "description": "Update post-deployment verification guidance to mirror the new login behavior checks: server-forced read every login, users/{auth.uid} only, no email lookup, no cached approval state, plus expected console/log indicators to confirm correct behavior."
         }
       ]
     }
