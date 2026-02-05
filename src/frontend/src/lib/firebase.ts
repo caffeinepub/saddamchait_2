@@ -92,16 +92,11 @@ export async function isFirstUser(): Promise<boolean> {
 }
 
 // Helper: Create user profile in Firestore
-// ALWAYS uses the authenticated user's UID from Firebase Auth currentUser
 export async function createUserProfile(
   profileData: {
-    name?: string;
-    relation?: string;
-    customRelation?: string;
-    age?: string;
-    countryCode?: string;
-    phoneNumber?: string;
-    profileImageDataUrl?: string;
+    name: string;
+    email: string;
+    photoURL: string;
   }
 ): Promise<void> {
   await waitForFirebase();
@@ -115,10 +110,10 @@ export async function createUserProfile(
   }
   
   const uid = currentUser.uid;
-  const email = currentUser.email || '';
+  const email = currentUser.email || profileData.email;
   
   const modules = await loadFirebaseModules();
-  const { doc, setDoc } = modules.firestore;
+  const { doc, setDoc, serverTimestamp } = modules.firestore;
   
   // Check if this is the first user
   const firstUser = await isFirstUser();
@@ -127,24 +122,21 @@ export async function createUserProfile(
 
   console.log('createUserProfile - Creating profile for uid:', uid, 'role:', role, 'approved:', approved);
 
-  // ALWAYS write to users/{uid} using the authenticated user's UID
-  // Use setDoc to overwrite any existing data
+  // Write to users/{uid} using the authenticated user's UID
   await setDoc(doc(db, 'users', uid), {
-    uid,
-    email,
-    name: profileData.name || '',
+    name: profileData.name,
+    email: email,
+    photoURL: profileData.photoURL,
     role,
     approved,
-    createdAt: new Date().toISOString(),
-    ...profileData,
+    createdAt: serverTimestamp(),
   });
 
   console.log('createUserProfile - Profile created successfully for uid:', uid);
 }
 
 // Helper: Get user profile from Firestore with FRESH server read (no cache)
-// Uses getDocFromServer() to bypass cache entirely
-export async function getUserProfile(uid: string): Promise<{ approved: boolean; role: string } | null> {
+export async function getUserProfile(uid: string): Promise<{ name: string; email: string; photoURL: string; role: string; approved: boolean } | null> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -164,10 +156,16 @@ export async function getUserProfile(uid: string): Promise<{ approved: boolean; 
       // Explicitly check approved field - must be exactly true (boolean)
       const approved = data.approved === true;
       const role = data.role ?? 'user';
+      const name = data.name ?? '';
+      const email = data.email ?? '';
+      const photoURL = data.photoURL ?? '';
       
-      console.log('getUserProfile - Fresh server data retrieved for uid:', uid, 'approved:', approved, 'role:', role, 'raw approved value:', data.approved, 'fromCache:', userDoc.metadata.fromCache);
+      console.log('getUserProfile - Fresh server data retrieved for uid:', uid, 'approved:', approved, 'role:', role, 'fromCache:', userDoc.metadata.fromCache);
       
       return {
+        name,
+        email,
+        photoURL,
         approved,
         role,
       };
@@ -181,18 +179,74 @@ export async function getUserProfile(uid: string): Promise<{ approved: boolean; 
   }
 }
 
+// Helper: Get all users (admin only)
+export async function getAllUsers(): Promise<Array<{ uid: string; name: string; email: string; photoURL: string; role: string; approved: boolean; createdAt: any }>> {
+  try {
+    await waitForFirebase();
+    const db = getDb();
+    
+    const modules = await loadFirebaseModules();
+    const { collection, getDocs } = modules.firestore;
+    
+    const usersRef = collection(db, 'users');
+    const snapshot = await getDocs(usersRef);
+    
+    const users: Array<{ uid: string; name: string; email: string; photoURL: string; role: string; approved: boolean; createdAt: any }> = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      users.push({
+        uid: doc.id,
+        name: data.name ?? '',
+        email: data.email ?? '',
+        photoURL: data.photoURL ?? '',
+        role: data.role ?? 'user',
+        approved: data.approved === true,
+        createdAt: data.createdAt,
+      });
+    });
+    
+    return users;
+  } catch (error) {
+    console.error('getAllUsers - Error fetching users:', error);
+    return [];
+  }
+}
+
+// Helper: Update user approval status (admin only)
+export async function updateUserApproval(uid: string, approved: boolean): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, updateDoc } = modules.firestore;
+  
+  const userDocRef = doc(db, 'users', uid);
+  await updateDoc(userDocRef, { approved });
+  
+  console.log('updateUserApproval - Updated approval for uid:', uid, 'approved:', approved);
+}
+
+// Helper: Update user role (admin only)
+export async function updateUserRole(uid: string, role: 'user' | 'admin'): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, updateDoc } = modules.firestore;
+  
+  const userDocRef = doc(db, 'users', uid);
+  await updateDoc(userDocRef, { role });
+  
+  console.log('updateUserRole - Updated role for uid:', uid, 'role:', role);
+}
+
 // Helper: Sign up with email and password
 export async function signUpWithEmail(
   email: string,
   password: string,
   profileData: {
-    name?: string;
-    relation?: string;
-    customRelation?: string;
-    age?: string;
-    countryCode?: string;
-    phoneNumber?: string;
-    profileImageDataUrl?: string;
+    name: string;
+    photoURL: string;
   }
 ): Promise<{ success: boolean; error?: string; isProfileError?: boolean }> {
   try {
@@ -216,7 +270,7 @@ export async function signUpWithEmail(
 
     // Step 2: Create Firestore profile using the authenticated user's UID
     try {
-      await createUserProfile(profileData);
+      await createUserProfile({ ...profileData, email });
       console.log('signUpWithEmail - Firestore profile created successfully');
     } catch (profileError: any) {
       console.error('signUpWithEmail - Firestore profile creation failed:', profileError);
@@ -259,7 +313,6 @@ export async function signInWithEmail(
     console.log('signInWithEmail - Authenticated user uid:', user.uid);
 
     // ALWAYS fetch fresh approval state from server using users/{uid}
-    // Use getDocFromServer() to bypass cache entirely - NO cached data
     const profile = await getUserProfile(user.uid);
 
     console.log('signInWithEmail - Profile fetched:', profile);

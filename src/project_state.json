@@ -1,225 +1,140 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 52,
-  "summary": "Mobile-first private family chat app “saddamchait” with React UI and a structured ICP (Motoko) backend + React frontend template; Firebase (Spark/free) Email/Password authentication remains integrated into the existing auth screens with Firestore-backed approval-gated access (pending approval; first user bootstraps as Super Admin) and the Forgot Password flow disabled in favor of admin-managed resets, while the ICP backend now also includes explicit Motoko authorization/access-control and user-approval modules integrated into the main canister.",
+  "projectStateVersion": 3,
+  "summary": "Single unified Firebase-based app with role-based access (user/admin/super_admin), global header + profile popup, and an in-app admin dashboard for user management and other sections.",
+  "architectural_notes": [
+    "Use Firebase Authentication for user signup/login.",
+    "Persist user profiles in Firestore at users/{uid} with role-based authorization (user/admin/super_admin) and approval status."
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "imageRequirements": "## Required Images\n- Flat chat-bubble logo icon with a simple green palette on transparent background (app-logo.dim_256x256.png)",
   "existing_features": [
     {
-      "id": "IF-1",
-      "title": "Motoko backend canister scaffold",
-      "synonyms": [
-        "backend canister",
-        "Motoko core"
-      ],
-      "description": "Base Motoko canister source and system IDL wiring suitable for ICP deployment, with generated frontend declarations for actor typing.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-2",
-      "title": "React + Vite + Tailwind frontend scaffold",
-      "synonyms": [
-        "frontend scaffold",
-        "initial app"
-      ],
-      "description": "React application setup (Vite, TypeScript, Tailwind) with app shell, routing/screens entrypoints, and project config files.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-3",
-      "title": "Internet Identity authentication integration",
-      "synonyms": [
-        "II auth",
-        "Internet Identity login"
-      ],
-      "description": "Hooks and UI layout/screens for authentication using Internet Identity, including actor initialization support.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-4",
-      "title": "Reusable UI component library (shadcn/ui) included",
-      "synonyms": [
-        "shadcn components",
-        "UI kit"
-      ],
-      "description": "Vendored shadcn/ui component set and supporting utilities/config (eslint rules, components.json, utils).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-5",
-      "title": "Build/deploy template and automation scripts",
-      "synonyms": [
-        "Docker build template",
-        "deploy scripts",
-        "icp.yaml"
-      ],
-      "description": "Build template assets (Dockerfile, deploy.sh, canister yaml templates, workspace/package configs) plus scripts for pruning/resizing images and build orchestration.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-6",
-      "title": "Auth UI screens (login, signup, password reset)",
-      "synonyms": [
-        "authentication screens",
-        "auth flows"
-      ],
-      "description": "Frontend screens and layout for user authentication flows, including Login, Signup, and Password Reset screens integrated with existing Internet Identity hooks.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-7",
-      "title": "Camera capture hook and profile image processing utilities",
-      "synonyms": [
-        "camera hook",
-        "profile image processing"
-      ],
-      "description": "Client-side camera capture hook plus utilities for processing profile images (e.g., resizing/format handling) to support avatar/profile photo workflows.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-8",
-      "title": "ICP CLI / GitHub export-ready project template configuration",
-      "synonyms": [
-        "github export icp-cli",
-        "icp.yaml + canister.yaml templates"
-      ],
-      "description": "Provides standardized icp-cli compatible project templates and configs (icp.yaml, per-canister canister.yaml templates, build/deploy scripts and workspace packaging) to support reproducible builds and repository export workflows.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-9",
-      "title": "Firebase Web SDK Email/Password auth integrated into existing auth screens",
-      "synonyms": [
-        "Firebase Auth",
-        "email/password login",
-        "firebase web sdk"
-      ],
-      "description": "Adds Firebase initialization and wires existing Login/Signup screens to Firebase Email/Password authentication without introducing new screens or changing the overall UI structure.",
-      "reqIds": [
-        "AR-1",
-        "AR-7"
-      ],
-      "version": 1
-    },
-    {
-      "id": "IF-10",
-      "title": "Approval-gated access model backed by Firestore user records",
-      "synonyms": [
-        "pending approval gating",
-        "approved users only",
-        "firestore user profile"
-      ],
-      "description": "On signup, persists an application-level user record (e.g., status/role) with status=\"pending approval\" and blocks access/login until approved, showing exactly \"Account pending approval\" for unapproved users.",
-      "reqIds": [
-        "AR-2",
-        "AR-5",
-        "AR-8"
-      ],
-      "version": 1
-    },
-    {
-      "id": "IF-11",
-      "title": "First-user bootstrap to Super Admin role",
-      "synonyms": [
-        "first signup is admin",
-        "super admin bootstrap"
-      ],
-      "description": "Automatically assigns the first successfully registered user the \"Super Admin\" role (persisted in the same user record used for approval gating) and supports both PREVIEW and LIVE environments.",
-      "reqIds": [
-        "AR-3",
-        "AR-9"
-      ],
-      "version": 1
-    },
-    {
-      "id": "IF-12",
-      "title": "Forgot Password flow disabled; admin-managed password resets only",
-      "synonyms": [
-        "disable password reset email",
-        "no firebase reset email"
-      ],
-      "description": "Updates the existing Password Reset flow to remove/disable Firebase email reset behavior and replaces confirmation copy to state that password resets are handled manually by an Admin only (no new screens).",
-      "reqIds": [
-        "AR-4",
-        "AR-10"
-      ],
-      "version": 1
-    },
-    {
-      "id": "IF-13",
-      "title": "Motoko authorization/access-control and user-approval modules integrated into backend canister",
-      "synonyms": [
-        "backend authorization",
-        "access control mixin",
-        "user approval canister logic"
-      ],
-      "description": "Adds Motoko-side authorization primitives (access-control + authorization mixin) and user-approval logic modules, wired into the backend main canister to support role/approval-based gating at the canister layer.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-14",
-      "title": "Developer-facing clarification note on auth constraints (Internet Identity vs Firebase Auth)",
-      "synonyms": [
-        "auth constraints documentation",
-        "II-only constraint note",
-        "firebase auth confirmation note"
-      ],
-      "description": "Adds a developer-facing comment/README/spec note clarifying the platform constraint that only Internet Identity is supported for third-party authentication and explicitly requesting confirmation on whether Firebase Auth remains required despite this limitation, without restructuring the app or adding screens.",
+      "id": "feature-align-the-firestore-user-document-schema-to-exactly-users-uid-with-fields-name-string-email-string-photourl-string-role-user-admin-super-admin-approved-boolean-and-createdat-firestore-timestamp-ensure-signup-writes-these-fields-and-that-subsequent-profile-reads-in-the-app-use-these-fields",
+      "title": "Align the Firestore user document schema to exactly `users/{uid}` with fields: `name` (string), `email` (string), `photoURL` (string), `role` (\"user\" | \"admin\" | \"super_admin\"), `approved` (boolean), and `createdAt` (Firestore timestamp). Ensure signup writes these fields and that subsequent profile reads in the app use these fields.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-the-firebase-login-approval-check-so-that-every-login-attempt-performs-a-fresh-firestore-server-read-for-the-authenticated-user-profile-at-the-exact-document-path-users-auth-uid-where-auth-uid-is-firebase-auth-currentuser-uid-user-uid-and-uses-that-document-s-approved-boolean-field-as-the-sole-source-of-truth-for-approval-gating",
-      "title": "Update the Firebase login approval check so that every login attempt performs a fresh Firestore server read for the authenticated user profile at the exact document path `users/{auth.uid}` (where `auth.uid` is Firebase Auth `currentUser.uid` / `user.uid`), and uses that document’s `approved` boolean field as the sole source of truth for approval gating.",
+      "id": "feature-implement-the-first-ever-signup-rule-when-the-users-collection-has-no-users-the-first-created-account-must-be-assigned-role-super-admin-and-approved-true-all-subsequent-signups-must-be-assigned-role-user-and-approved-false",
+      "title": "Implement the first-ever signup rule: when the users collection has no users, the first created account must be assigned `role = \"super_admin\"` and `approved = true`; all subsequent signups must be assigned `role = \"user\"` and `approved = false`.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-remove-disable-any-email-based-profile-lookup-and-any-cached-approval-logic-in-the-login-flow-ensure-there-are-no-firestore-queries-by-email-and-no-reuse-of-prior-approval-state-between-logins",
-      "title": "Remove/disable any email-based profile lookup and any cached approval logic in the login flow; ensure there are no Firestore queries by email and no reuse of prior approval state between logins.",
+      "id": "feature-add-a-global-header-that-is-displayed-on-all-pages-in-the-single-app-header-layout-left-side-shows-app-logo-app-name-right-side-shows-the-current-user-s-profile-picture-clickable-when-authenticated",
+      "title": "Add a global header that is displayed on all pages in the single app. Header layout: left side shows app logo + app name; right side shows the current user’s profile picture (clickable) when authenticated.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-the-live-smoke-test-deployment-verification-guidance-to-explicitly-validate-the-new-login-behavior-fresh-server-read-every-login-users-auth-uid-only-no-email-lookup-no-cached-approval-state-and-reference-the-expected-console-log-indicators-for-troubleshooting",
-      "title": "Update the LIVE smoke test/deployment verification guidance to explicitly validate the new login behavior (fresh server read every login, `users/{auth.uid}` only, no email lookup, no cached approval state) and reference the expected console/log indicators for troubleshooting.",
+      "id": "feature-implement-the-profile-popup-opened-by-clicking-the-header-avatar-the-popup-must-always-show-the-user-s-name-and-role-if-the-role-is-admin-or-super-admin-also-show-an-open-admin-dashboard-button-always-show-a-logout-button-that-signs-the-user-out-and-returns-them-to-the-login-screen",
+      "title": "Implement the profile popup opened by clicking the header avatar. The popup must always show the user’s name and role. If the role is `admin` or `super_admin`, also show an \"Open Admin Dashboard\" button. Always show a \"Logout\" button that signs the user out and returns them to the login screen.",
       "reqIds": [
         "REQ-4"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-add-an-in-app-admin-dashboard-area-within-the-same-application-no-separate-admin-app-access-must-be-restricted-to-users-whose-firestore-role-is-admin-or-super-admin-include-the-following-pages-sections-dashboard-stats-users-list-chats-reports-settings",
+      "title": "Add an in-app Admin Dashboard area within the same application (no separate admin app). Access must be restricted to users whose Firestore role is `admin` or `super_admin`. Include the following pages/sections: Dashboard (stats), Users list, Chats, Reports, Settings.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-users-list-page-in-the-admin-dashboard-that-lists-all-user-documents-from-users-including-super-admin-users-and-supports-user-management-actions-with-role-based-permissions-admins-can-approve-users-block-users-and-change-role-between-user-and-admin-super-admins-can-do-all-admin-actions-and-can-promote-users-to-admin-enforce-that-super-admin-is-also-a-normal-user-with-extra-permissions-and-appears-in-the-user-list",
+      "title": "Implement the Users list page in the Admin Dashboard that lists all user documents from `users` (including `super_admin` users) and supports user management actions with role-based permissions: Admins can approve users, block users, and change role between `user` and `admin`. Super admins can do all admin actions and can promote users to admin. Enforce that \"super_admin is also a normal user with extra permissions\" and appears in the user list.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-firestore-security-rules-to-enforce-the-role-based-permissions-required-by-the-admin-dashboard-and-user-management-while-keeping-regular-users-limited-to-reading-updating-only-their-own-profile-excluding-role-approved-changes-ensure-admins-can-read-all-users-for-listing-ensure-rules-restrict-any-attempt-to-set-role-to-super-admin-via-client-writes-and-restrict-modifications-to-existing-super-admin-users-roles-approval-by-non-super-admins",
+      "title": "Update Firestore security rules to enforce the role-based permissions required by the admin dashboard and user management, while keeping regular users limited to reading/updating only their own profile (excluding role/approved changes). Ensure admins can read all users for listing. Ensure rules restrict any attempt to set `role` to `super_admin` via client writes and restrict modifications to existing `super_admin` users’ roles/approval by non-super_admins.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-clean-whatsapp-style-mobile-friendly-ui-across-the-unified-app-auth-screens-header-home-and-admin-dashboard-with-consistent-spacing-typography-and-a-green-forward-palette-avoid-blue-purple-keep-all-user-facing-text-in-english",
+      "title": "Apply a clean, WhatsApp-style, mobile-friendly UI across the unified app (auth screens, header, home, and admin dashboard) with consistent spacing, typography, and a green-forward palette (avoid blue/purple). Keep all user-facing text in English.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-static-app-logo-image-asset-and-render-it-in-the-global-header-next-to-the-app-name",
+      "title": "Add a static app logo image asset and render it in the global header next to the app name.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "architectural_notes": [
-    "Project structured as ICP canisters with separate backend (Motoko) and frontend (React) configurations and generated declaration files for typed actor calls.",
-    "Frontend auth uses Internet Identity; custom linting/rules enforce correct II provider usage and avoid problematic query-key bigint usage.",
-    "shadcn/ui components are vendored into the repository with shared UI utilities and Tailwind/PostCSS configuration.",
-    "Build/deploy is standardized via a build-template (Dockerfile, deploy script, canister yaml templates) and supporting Node scripts (image prune/resize).",
-    "Frontend includes a camera capture hook and a dedicated profile image processing utility module for handling user-provided images (e.g., avatars).",
-    "Build template now includes icp-cli/GitHub-export oriented configuration (icp.yaml plus per-canister canister.yaml templates) aligned with deploy.sh and workspace packaging for reproducible exports.",
-    "App now targets Firebase backend (Spark/free) for auth + Firestore; integrate Firebase Email/Password and store per-user approval status/roles to gate login (pending approval until admin approves; first user becomes super admin).",
-    "Frontend now includes Firebase initialization/modules (firebase.ts, types, error mapping) and uses Firebase Email/Password auth for existing auth screens.",
-    "User approval/role gating is implemented via Firestore-backed application user records (status/role) that gate login and bootstrap first user as Super Admin.",
-    "Build template/core infrastructure and Motoko authorization/user-approval modules have been revised and versioned (core-infrastructure v1.0.2, authorization v4.0.0, user-approval v3.0.0), with corresponding updates across backend modules and build-template assets."
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Implement Firebase Auth signup/login; on first-ever signup auto-assign role=super_admin and approved=true",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Create Firestore users/{uid} documents with fields name, email, photoURL, role, approved, createdAt; ensure every user including super_admin appears in user list",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add global header on all pages with app logo/name (left) and clickable user profile picture (right)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Profile popup from avatar showing name+role; show 'Open Admin Dashboard' for admin/super_admin; always include Logout",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Role-based route/access control: Admin Dashboard accessible only to admin or super_admin; single unified app (no separate admin app)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Admin Dashboard pages: Dashboard (stats), Users list, Chats, Reports, Settings",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "User management: Admin can approve/block users and change role user↔admin; Super admin can do all admin actions and promote users to admin",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "UI: clean, WhatsApp-style simple and mobile-friendly across the unified app",
+      "reqIds": [],
+      "status": "pending"
+    }
   ],
-  "known_issues": [
-    "LIVE login gating bug: app still shows \"Your account is pending admin approval\" even when Firestore doc exists at users/{auth.uid} with approved:true; must enforce fresh getDoc() on every login using users/{auth.uid} only (no email lookup, no cached approval state)."
-  ],
-  "isFixRequest": true,
-  "projectName": "saddamchait",
+  "gameProjectType": "none",
+  "projectName": "Unified Firebase app with role-based access, global header/profile menu, and in-app admin dashboard",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

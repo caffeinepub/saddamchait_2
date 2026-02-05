@@ -1,62 +1,278 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix login approval gating with fresh Firestore server reads at users/{auth.uid}",
+  "title": "Unified Firebase app: user schema alignment, global header/profile menu, and in-app admin dashboard",
   "requirements": [
     {
-      "id": "REQ-2",
-      "summary": "Force every login attempt to perform a fresh Firestore server read from users/{auth.uid} and gate login solely on that document’s approved boolean.",
+      "id": "REQ-1",
+      "summary": "Align Firestore `users/{uid}` document shape to the required fields and ensure signup + profile reads use that schema.",
       "acceptanceCriteria": [
-        "On each login attempt, the app fetches Firestore document users/{uid} where uid equals the authenticated Firebase user UID, using a server-forced read API (not a cache-eligible read).",
-        "If the Firestore document users/{uid} exists and approved === true (boolean), login succeeds and the pending-approval error is not shown.",
-        "If the Firestore document users/{uid} is missing OR approved !== true, the app signs the user out and shows the exact message: \"Your account is pending admin approval.\"",
-        "Toggling approved: false → true in Firestore and attempting login again (without hard refresh) reflects the new approval state, proving there is no cached approval result."
+        "After signup, the Firestore document at `users/{uid}` exists and contains `name`, `email`, `photoURL`, `role`, `approved`, and `createdAt` (as a Firestore Timestamp, e.g., via `serverTimestamp()`), with no dependency on additional required fields.",
+        "Login gating continues to rely on the boolean `approved === true` from a fresh server read.",
+        "The app can display the logged-in user’s `name`, `role`, and `photoURL` using the new schema."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/firebaseTypes.ts",
+          "operation": "modify",
+          "description": "Update `UserProfile`/related types to match exactly the required schema fields: `name`, `email`, `photoURL`, `role`, `approved`, `createdAt` (Firestore timestamp type), and remove/stop relying on any extra profile fields for required app flows."
+        },
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Update Firestore write/read helpers to (1) write ONLY the required fields into `users/{uid}` on signup using Firestore `serverTimestamp()` for `createdAt`, (2) map the existing processed profile image data URL into `photoURL`, and (3) update profile read helpers to return `name`, `role`, and `photoURL` (plus `approved`) from a fresh server read (no cache)."
+        },
+        {
+          "path": "frontend/src/screens/SignupScreen.tsx",
+          "operation": "modify",
+          "description": "Adjust signup submission payload to match the required user schema (e.g., send `name` and `photoURL`), and ensure UI copy/errors remain in English while keeping existing image capture/processing behavior."
+        },
+        {
+          "path": "frontend/src/screens/HomeScreen.tsx",
+          "operation": "modify",
+          "description": "Update Home screen to display the logged-in user’s `name`, `role`, and `photoURL` from the new schema (avoid hardcoded placeholders for profile identity) and rely on the shared/global header for logout and identity display instead of its own header."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Implement first-ever signup behavior: first user becomes `super_admin` and approved; later signups become unapproved `user`.",
+      "acceptanceCriteria": [
+        "When the users collection is empty, the first signup creates `users/{uid}` with `role=\"super_admin\"` and `approved=true`.",
+        "When at least one user exists, a new signup creates `users/{uid}` with `role=\"user\"` and `approved=false`."
       ],
       "file_operations": [
         {
           "path": "frontend/src/lib/firebase.ts",
           "operation": "modify",
-          "description": "Update the login-time approval check to always read only the exact Firestore document users/{auth.uid} using a server-forced read function (e.g., Firestore server read helper rather than cache-eligible reads). Ensure the approved field is treated as the sole source of truth and must be exactly boolean true; otherwise sign the user out for that attempt."
+          "description": "Ensure the first-user check is used during profile creation to set `role`/`approved` per requirement (first signup => `super_admin`+approved, otherwise `user`+unapproved), and keep the decision fully derived from Firestore state before writing."
         },
         {
-          "path": "frontend/src/screens/LoginScreen.tsx",
+          "path": "frontend/LIVE_SMOKE_TEST.md",
           "operation": "modify",
-          "description": "Align the login UI flow with the updated approval gating behavior: treat the sign-in result as authoritative for showing the pending-approval message and ensure the exact message \"Your account is pending admin approval.\" is shown when the approval gate fails."
+          "description": "Update the smoke test checklist to explicitly verify the first-user `super_admin`+approved behavior vs subsequent `user`+unapproved behavior using the `users/{uid}` schema and fresh reads."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Remove/disable any email-based profile lookup and any cached approval logic so login approval is never determined by anything except the fresh server read of users/{uid}.",
+      "summary": "Add a global header on all routes with app logo/name on the left and (when logged in) a clickable avatar on the right.",
       "acceptanceCriteria": [
-        "The login flow does not query Firestore by email (no where('email'...), no reads of users collection to match email) and only reads doc(db, 'users', uid).",
-        "Approval gating does not rely on any stored/cached value (e.g., localStorage/sessionStorage/React state/React Query cache) to determine approved during login; it always uses the fresh Firestore server read result for that attempt."
+        "All routes/screens render the same header at the top of the viewport.",
+        "Header left renders an app logo image asset and an app name string.",
+        "When a user is logged in, the header right renders their `photoURL` as an avatar button; when logged out, the avatar area is hidden or replaced with a neutral placeholder (no errors)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/lib/firebase.ts",
+          "path": "frontend/src/components/layout/AppHeader.tsx",
+          "operation": "create",
+          "description": "Create a global `AppHeader` component rendering left: logo image + app name; right: authenticated user avatar button using `photoURL`. Use shadcn-ui composition (e.g., Avatar/Button primitives) for consistent styling. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useFirebaseAuthUser.ts",
+          "operation": "create",
+          "description": "Add a small hook that subscribes to Firebase Auth state (e.g., onAuthStateChanged via CDN-loaded module) and exposes current auth user (uid/email) for header visibility and profile loading."
+        },
+        {
+          "path": "frontend/src/hooks/useFirestoreUserProfile.ts",
+          "operation": "create",
+          "description": "Add a hook that fetches the current user's `users/{uid}` profile (fresh server read) and returns `name`, `role`, `photoURL`, `approved` for use across header, home, and admin guarding."
+        },
+        {
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Audit and refactor the login-related code paths to ensure there are no Firestore lookups by email and no reuse of prior approval state between login attempts. Keep the approval decision confined to the per-attempt server-forced read of users/{uid}."
+          "description": "Wrap all routed screens with a shared layout that includes `AppHeader` at the top so it renders on every route; ensure the avatar area behaves safely when logged out. Wire the new hooks into the layout to drive authenticated header state."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Update LIVE smoke test/deployment verification guidance to validate fresh server read behavior, users/{auth.uid} path usage only, no email lookups, and include expected console/log indicators for troubleshooting.",
+      "summary": "Implement header avatar profile popup showing name+role, conditional admin dashboard entry, and logout behavior back to `/login`.",
       "acceptanceCriteria": [
-        "Smoke test documentation includes a step proving that an admin flipping approved in Firestore affects the very next login attempt without a hard refresh.",
-        "Smoke test documentation includes a step to confirm the document path is users/{auth.uid} and that no email-based lookups occur."
+        "Clicking the avatar opens a popup/menu anchored to the avatar button.",
+        "Popup contains visible text for the user `name` and `role`.",
+        "For `role in {admin, super_admin}`, popup shows a button labeled exactly \"Open Admin Dashboard\" that navigates to the admin area.",
+        "Popup always includes a \"Logout\" button that signs out and navigates to `/login`."
       ],
       "file_operations": [
         {
-          "path": "frontend/LIVE_SMOKE_TEST.md",
+          "path": "frontend/src/components/layout/ProfileMenu.tsx",
+          "operation": "create",
+          "description": "Create a `ProfileMenu` component anchored to the header avatar that shows the user's name + role, conditionally renders a button labeled exactly \"Open Admin Dashboard\" for `admin`/`super_admin`, and always renders a \"Logout\" action. Use shadcn-ui Dropdown Menu primitives for the popup behavior. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/layout/AppHeader.tsx",
           "operation": "modify",
-          "description": "Update the LIVE smoke test checklist to explicitly validate that each login attempt triggers a server-forced Firestore read of users/{auth.uid} (not a cache-eligible read), that flipping approved takes effect on the next login without hard refresh, and that there are no email-based lookups. Add the exact console/log strings to look for during troubleshooting."
+          "description": "Integrate `ProfileMenu` into the avatar area so clicking the avatar opens the anchored menu and displays `name` + `role`."
+        },
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Ensure there is a single sign-out helper used by the profile menu logout action; on logout, clear any cached in-memory UI state as needed and allow navigation to `/login` without errors."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Add navigation wiring so profile-menu logout reliably navigates to `/login`, and \"Open Admin Dashboard\" navigates to the admin area route(s) within the same SPA."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Add an in-app Admin Dashboard (same SPA) with role-guarded access and 5 sections: Dashboard, Users, Chats, Reports, Settings.",
+      "acceptanceCriteria": [
+        "Navigating to an admin route while not `admin`/`super_admin` redirects back to the non-admin area (e.g., `/home`) and does not render admin content.",
+        "Admin Dashboard includes navigation to the 5 required pages/sections within the same SPA.",
+        "Dashboard page shows basic stats placeholders derived from Firestore where feasible (e.g., total users, approved users, pending users).",
+        "Chats/Reports/Settings pages can be UI placeholders but must exist and be reachable via the admin navigation."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/screens/admin/AdminLayout.tsx",
+          "operation": "create",
+          "description": "Create an `AdminLayout` that provides responsive admin navigation (mobile-friendly) and a content outlet area for the 5 sections. Use shadcn-ui composition (e.g., Tabs/Sheet/Buttons) to support a WhatsApp-style clean UI. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminDashboardScreen.tsx",
+          "operation": "create",
+          "description": "Create the Admin Dashboard (stats) screen and display basic Firestore-derived counts (e.g., total users, approved users, pending users) with safe loading/error states."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "operation": "create",
+          "description": "Create the Admin Users list screen entry (table/list shell) and wire it into the admin navigation (full management actions implemented under REQ-6)."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminChatsScreen.tsx",
+          "operation": "create",
+          "description": "Create a reachable Chats screen as a UI placeholder (no realtime chat implementation)."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminReportsScreen.tsx",
+          "operation": "create",
+          "description": "Create a reachable Reports screen as a UI placeholder."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminSettingsScreen.tsx",
+          "operation": "create",
+          "description": "Create a reachable Settings screen as a UI placeholder."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Extend SPA routing to include admin routes for Dashboard/Users/Chats/Reports/Settings, and wire route navigation links/buttons from the profile menu and admin layout."
+        },
+        {
+          "path": "frontend/src/components/auth/AdminRouteGuard.tsx",
+          "operation": "create",
+          "description": "Add an admin-only guard wrapper that uses a fresh Firestore role read (`admin`/`super_admin`) to allow rendering admin routes, otherwise redirects to `/home` without rendering admin content."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Implement Admin Dashboard Users list with Firestore-backed listing and role-based management actions (approve/block and role changes), including super_admin visibility and protections.",
+      "acceptanceCriteria": [
+        "Users list shows all users in the `users` collection (admins and super_admins included).",
+        "Approve action updates the selected user document such that they can log in (i.e., `approved` becomes `true`).",
+        "Block action updates the selected user such that they cannot log in anymore (e.g., `approved` becomes `false`), and the UI reflects the blocked/unapproved state.",
+        "Role change action allows toggling `role` between `user` and `admin` for non-super_admin users according to the current operator’s permissions.",
+        "The UI prevents changing any user to `super_admin` via the dashboard and prevents demoting a `super_admin` user via the dashboard."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Add Firestore helpers to (1) list all `users` documents, and (2) update `approved` and `role` fields for a target user (using appropriate Firestore update operations), while keeping all writes constrained to the required schema fields."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "operation": "modify",
+          "description": "Implement the users list UI by fetching all `users` docs and rendering each user's name/email/role/approved state and avatar (via `photoURL`). Add action controls to approve/block and to toggle role user↔admin. Enforce UI permission rules: never allow setting `super_admin`, never allow demoting/changing a `super_admin` unless operator is `super_admin`, and ensure `super_admin` users still appear in the list."
+        },
+        {
+          "path": "frontend/src/hooks/useFirestoreUsersList.ts",
+          "operation": "create",
+          "description": "Add a hook to load the full users collection for admin listing (with loading/error states) and expose a refetch method after admin actions."
+        },
+        {
+          "path": "frontend/src/components/admin/UserRowActions.tsx",
+          "operation": "create",
+          "description": "Create a composed action-control component for each user row/card (approve/block and role toggle), enforcing the operator-permission constraints in the UI. Use shadcn-ui composition (e.g., Dropdown Menu, Alert Dialog, Buttons) for consistent interactions. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Update Firestore security rules to enforce role-based permissions for user listing and management and prevent client writes to `super_admin` except where unavoidable.",
+      "acceptanceCriteria": [
+        "A non-admin authenticated user can read only `users/{auth.uid}` and cannot update `role` or `approved`.",
+        "An admin/super_admin can read all documents in `users` (required for the user list).",
+        "Client writes that attempt to create/update any document with `role == \"super_admin\"` are denied by Firestore rules (except for the first-user creation flow if supported by current rule strategy).",
+        "Updates to an existing `super_admin` user’s `role`/`approved` are rejected unless the requester is `super_admin`."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/firestore.rules",
+          "operation": "modify",
+          "description": "Tighten rules to: (1) keep non-admin users limited to reading their own `users/{uid}` and disallow changing `role`/`approved`; (2) allow admins/super_admins to read all users; (3) deny updates that set `role` to `super_admin`; (4) restrict updates to an existing `super_admin` user's `role`/`approved` to only requests made by a `super_admin` requester (while still allowing listing visibility)."
         },
         {
           "path": "frontend/DEPLOYMENT.md",
           "operation": "modify",
-          "description": "Update post-deployment verification guidance to mirror the new login behavior checks: server-forced read every login, users/{auth.uid} only, no email lookup, no cached approval state, plus expected console/log indicators to confirm correct behavior."
+          "description": "Update deployment/runbook notes to include validating the updated Firestore rules for admin listing and user management actions (approve/block/role changes) and verifying the `super_admin` protection constraints."
+        }
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "summary": "Apply a clean, WhatsApp-style, mobile-friendly UI with a green-forward palette and consistent English text across auth, header, home, and admin.",
+      "acceptanceCriteria": [
+        "Primary navigation and key actions are easily usable on mobile widths (~360px) without horizontal scrolling.",
+        "Admin Dashboard navigation is usable on mobile (e.g., collapsible sidebar, tabs, or a responsive drawer).",
+        "All visible UI strings are in English.",
+        "Visual styling is consistent across screens and matches a simple WhatsApp-like aesthetic."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Refine global styling tokens (spacing/typography defaults and green-forward color emphasis) to keep a consistent WhatsApp-like aesthetic across screens while avoiding blue/purple primary accents."
+        },
+        {
+          "path": "frontend/tailwind.config.js",
+          "operation": "modify",
+          "description": "If needed, adjust Tailwind theme extensions to better support the green-forward palette and consistent typography across header, auth, home, and admin UI."
+        },
+        {
+          "path": "frontend/src/components/auth/AuthLayout.tsx",
+          "operation": "modify",
+          "description": "Align auth layout spacing and visual hierarchy with the unified WhatsApp-style design and ensure all user-facing strings remain English (no stray placeholder branding)."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminLayout.tsx",
+          "operation": "modify",
+          "description": "Ensure admin navigation is responsive on mobile (e.g., drawer/sheet or tabbed navigation), with consistent spacing and readable touch targets. Use shadcn-ui composition where applicable. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "summary": "Add a static generated app logo asset and render it in the global header.",
+      "acceptanceCriteria": [
+        "A logo file exists under `frontend/public/assets/generated/` and is used in the header.",
+        "Logo renders crisply at typical header sizes (~24–32px) on light and dark backgrounds."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/public/assets/generated/app-logo.dim_256x256.png",
+          "operation": "create",
+          "description": "Add the generated logo asset file at exactly `frontend/public/assets/generated/app-logo.dim_256x256.png` and keep it optimized for crisp rendering at ~24–32px in the header."
+        },
+        {
+          "path": "frontend/src/components/layout/AppHeader.tsx",
+          "operation": "modify",
+          "description": "Render the static logo asset from `frontend/public/assets/generated/app-logo.dim_256x256.png` next to the app name on the left side of the global header, sized appropriately for a compact WhatsApp-style header."
         }
       ]
     }

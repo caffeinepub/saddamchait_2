@@ -2,9 +2,7 @@ import { useState, useRef, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Camera, Image as ImageIcon, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useCamera } from '@/camera/useCamera';
@@ -16,32 +14,11 @@ interface SignupScreenProps {
   onNavigateToLogin: () => void;
 }
 
-const RELATIONS = ['Father', 'Mother', 'Brother', 'Sister', 'Son', 'Daughter', 'Other'] as const;
-type Relation = typeof RELATIONS[number];
-
-const COUNTRY_CODES = [
-  { code: '+1', country: 'US/CA' },
-  { code: '+44', country: 'UK' },
-  { code: '+91', country: 'IN' },
-  { code: '+92', country: 'PK' },
-  { code: '+61', country: 'AU' },
-  { code: '+86', country: 'CN' },
-  { code: '+81', country: 'JP' },
-  { code: '+49', country: 'DE' },
-  { code: '+33', country: 'FR' },
-  { code: '+39', country: 'IT' },
-] as const;
-
 export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [relation, setRelation] = useState<Relation | ''>('');
-  const [customRelation, setCustomRelation] = useState('');
-  const [age, setAge] = useState('');
-  const [countryCode, setCountryCode] = useState('+1');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [profileImage, setProfileImage] = useState<ProcessedImage | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -141,6 +118,11 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
       newErrors.profileImage = profileImage.error || 'Invalid profile photo';
     }
 
+    // Name validation
+    if (!name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
     // Email validation
     if (!email.trim()) {
       newErrors.email = 'Email is required';
@@ -162,35 +144,6 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    // Relation validation
-    if (!relation) {
-      newErrors.relation = 'Relation is required';
-    }
-
-    // Custom Relation validation (when "Other" is selected)
-    if (relation === 'Other' && !customRelation.trim()) {
-      newErrors.customRelation = 'Please specify your relation';
-    }
-
-    // Age validation
-    if (!age) {
-      newErrors.age = 'Age is required';
-    } else {
-      const ageNum = parseInt(age, 10);
-      if (isNaN(ageNum) || ageNum < 18) {
-        newErrors.age = 'You must be at least 18 years old';
-      } else if (ageNum > 120) {
-        newErrors.age = 'Please enter a valid age';
-      }
-    }
-
-    // Phone Number validation
-    if (!phoneNumber.trim()) {
-      newErrors.phoneNumber = 'Mobile number is required';
-    } else if (!/^\d{10}$/.test(phoneNumber.replace(/\s/g, ''))) {
-      newErrors.phoneNumber = 'Please enter a valid 10-digit mobile number';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -208,22 +161,14 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
     try {
       const result = await signUpWithEmail(email, password, {
         name,
-        relation: relation === 'Other' ? customRelation : relation,
-        customRelation: relation === 'Other' ? customRelation : undefined,
-        age,
-        countryCode,
-        phoneNumber,
-        profileImageDataUrl: profileImage?.dataUrl,
+        photoURL: profileImage?.dataUrl || '',
       });
 
       if (result.success) {
-        // Only transition to success screen if both Auth AND Firestore succeeded
         setIsSubmitted(true);
       } else if (result.error) {
-        // Handle both Auth errors and Firestore profile creation errors
         const errorMessage = getFirebaseErrorMessage(result.error);
         
-        // Show profile creation errors prominently
         if (result.isProfileError) {
           setErrors({ 
             submit: `${errorMessage} Your account was created but profile setup failed. Please contact support.` 
@@ -348,14 +293,13 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
     <AuthLayout>
       <div className="w-full space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">saddamchait</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Admin Portal</h1>
           <p className="text-sm text-muted-foreground">
             Create your account to get started.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* General error message */}
           {errors.submit && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -367,7 +311,7 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
           <div className="space-y-2">
             <Label>Profile Photo *</Label>
             <p className="text-xs text-muted-foreground">
-              Please upload a clear photo of your face (UI placeholder - no actual face detection)
+              Upload a clear photo of yourself
             </p>
 
             {profileImage ? (
@@ -433,14 +377,20 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">Name *</Label>
             <Input
               id="name"
               type="text"
               placeholder="John Doe"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setErrors((prev) => ({ ...prev, name: '' }));
+              }}
             />
+            {errors.name && (
+              <p className="text-xs text-destructive">{errors.name}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -457,109 +407,6 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
             />
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email}</p>
-            )}
-          </div>
-
-          {/* Relation Dropdown */}
-          <div className="space-y-2">
-            <Label htmlFor="relation">Relation *</Label>
-            <Select 
-              value={relation} 
-              onValueChange={(value) => {
-                setRelation(value as Relation);
-                setErrors((prev) => ({ ...prev, relation: '' }));
-              }}
-            >
-              <SelectTrigger id="relation">
-                <SelectValue placeholder="Select your relation" />
-              </SelectTrigger>
-              <SelectContent>
-                {RELATIONS.map((rel) => (
-                  <SelectItem key={rel} value={rel}>
-                    {rel}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.relation && (
-              <p className="text-xs text-destructive">{errors.relation}</p>
-            )}
-          </div>
-
-          {/* Custom Relation Input - shown when "Other" is selected */}
-          {relation === 'Other' && (
-            <div className="space-y-2">
-              <Label htmlFor="customRelation">Specify Relation *</Label>
-              <Input
-                id="customRelation"
-                type="text"
-                placeholder="Enter your relation"
-                value={customRelation}
-                onChange={(e) => {
-                  setCustomRelation(e.target.value);
-                  setErrors((prev) => ({ ...prev, customRelation: '' }));
-                }}
-              />
-              {errors.customRelation && (
-                <p className="text-xs text-destructive">{errors.customRelation}</p>
-              )}
-            </div>
-          )}
-
-          {/* Age Field */}
-          <div className="space-y-2">
-            <Label htmlFor="age">Age *</Label>
-            <Input
-              id="age"
-              type="number"
-              placeholder="18"
-              min="18"
-              value={age}
-              onChange={(e) => {
-                setAge(e.target.value);
-                setErrors((prev) => ({ ...prev, age: '' }));
-              }}
-            />
-            {errors.age && (
-              <p className="text-xs text-destructive">{errors.age}</p>
-            )}
-          </div>
-
-          {/* Mobile Number */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="phone">Mobile Number *</Label>
-              <Badge variant="outline" className="text-xs">
-                Unverified
-              </Badge>
-            </div>
-            <div className="flex gap-2">
-              <Select value={countryCode} onValueChange={setCountryCode}>
-                <SelectTrigger className="w-28">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_CODES.map((item) => (
-                    <SelectItem key={item.code} value={item.code}>
-                      {item.code} {item.country}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="1234567890"
-                value={phoneNumber}
-                onChange={(e) => {
-                  setPhoneNumber(e.target.value);
-                  setErrors((prev) => ({ ...prev, phoneNumber: '' }));
-                }}
-                className="flex-1"
-              />
-            </div>
-            {errors.phoneNumber && (
-              <p className="text-xs text-destructive">{errors.phoneNumber}</p>
             )}
           </div>
 

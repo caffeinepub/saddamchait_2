@@ -1,23 +1,14 @@
 export interface UserProfile {
+  name: string;
   email: string;
+  photoURL: string;
   role: 'super_admin' | 'admin' | 'user';
   approved: boolean;
-  createdAt: string;
-  name?: string;
-  relation?: string;
-  customRelation?: string;
-  age?: string;
-  countryCode?: string;
-  phoneNumber?: string;
-  profileImageDataUrl?: string;
+  createdAt: any; // Firestore Timestamp
 }
 
 export interface SignupData {
-  name?: string;
-  relation?: string;
-  customRelation?: string;
-  age?: string;
-  countryCode?: string;
-  phoneNumber?: string;
-  profileImageDataUrl?: string;
+  name: string;
+  email: string;
+  photoURL: string;
 }

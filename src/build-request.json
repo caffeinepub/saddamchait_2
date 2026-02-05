@@ -1,79 +1,201 @@
 {
   "kind": "build_request",
-  "title": "Fix login approval gating: force fresh Firestore server read from users/{auth.uid} only",
-  "priority": "high",
+  "title": "Unified Firebase app with role-based access, global header/profile menu, and in-app admin dashboard",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-2",
-      "text": "Update the Firebase login approval check so that every login attempt performs a fresh Firestore server read for the authenticated user profile at the exact document path `users/{auth.uid}` (where `auth.uid` is Firebase Auth `currentUser.uid` / `user.uid`), and uses that document’s `approved` boolean field as the sole source of truth for approval gating.",
+      "id": "REQ-1",
+      "text": "Align the Firestore user document schema to exactly `users/{uid}` with fields: `name` (string), `email` (string), `photoURL` (string), `role` (\"user\" | \"admin\" | \"super_admin\"), `approved` (boolean), and `createdAt` (Firestore timestamp). Ensure signup writes these fields and that subsequent profile reads in the app use these fields.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4",
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "fresh Firestore read on every login",
-          "users/{auth.uid} only"
+          "Firestore users collection:\n- Store every user in users/{uid}\n- Fields:\n  name (string)\n  email (string)\n  photoURL (string)\n  role (\"user\" | \"admin\" | \"super_admin\")\n  approved (boolean)\n  createdAt (timestamp)"
         ]
       },
       "acceptanceCriteria": [
-        "On each login attempt, the app fetches Firestore document `users/{uid}` where `uid` equals the authenticated Firebase user UID, using a server-forced read API (not a cache-eligible read).",
-        "If the Firestore document `users/{uid}` exists and `approved === true` (boolean), login succeeds and the pending-approval error is not shown.",
-        "If the Firestore document `users/{uid}` is missing OR `approved !== true`, the app signs the user out and shows the exact message: \"Your account is pending admin approval.\"",
-        "Toggling `approved: false` → `true` in Firestore and attempting login again (without hard refresh) reflects the new approval state, proving there is no cached approval result."
+        "After signup, the Firestore document at `users/{uid}` exists and contains `name`, `email`, `photoURL`, `role`, `approved`, and `createdAt` (as a Firestore Timestamp, e.g., via `serverTimestamp()`), with no dependency on additional required fields.",
+        "Login gating continues to rely on the boolean `approved === true` from a fresh server read.",
+        "The app can display the logged-in user’s `name`, `role`, and `photoURL` using the new schema."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement the first-ever signup rule: when the users collection has no users, the first created account must be assigned `role = \"super_admin\"` and `approved = true`; all subsequent signups must be assigned `role = \"user\"` and `approved = false`.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "On first-ever signup, automatically assign:\n  role = \"super_admin\"\n  approved = true"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When the users collection is empty, the first signup creates `users/{uid}` with `role=\"super_admin\"` and `approved=true`.",
+        "When at least one user exists, a new signup creates `users/{uid}` with `role=\"user\"` and `approved=false`."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Remove/disable any email-based profile lookup and any cached approval logic in the login flow; ensure there are no Firestore queries by email and no reuse of prior approval state between logins.",
+      "text": "Add a global header that is displayed on all pages in the single app. Header layout: left side shows app logo + app name; right side shows the current user’s profile picture (clickable) when authenticated.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4",
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "no cached or email-based approval logic",
-          "No email-based lookup is used"
+          "Header:\n- Show a global header on all pages.\n- Left: app logo + app name\n- Right: user profile picture (clickable)"
         ]
       },
       "acceptanceCriteria": [
-        "The login flow does not query Firestore by email (no `where('email'...)`, no reads of `users` collection to match email) and only reads `doc(db, 'users', uid)`.",
-        "Approval gating does not rely on any stored/cached value (e.g., localStorage/sessionStorage/React state/React Query cache) to determine `approved` during login; it always uses the fresh Firestore server read result for that attempt."
+        "All routes/screens render the same header at the top of the viewport.",
+        "Header left renders an app logo image asset and an app name string.",
+        "When a user is logged in, the header right renders their `photoURL` as an avatar button; when logged out, the avatar area is hidden or replaced with a neutral placeholder (no errors)."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Update the LIVE smoke test/deployment verification guidance to explicitly validate the new login behavior (fresh server read every login, `users/{auth.uid}` only, no email lookup, no cached approval state) and reference the expected console/log indicators for troubleshooting.",
+      "text": "Implement the profile popup opened by clicking the header avatar. The popup must always show the user’s name and role. If the role is `admin` or `super_admin`, also show an \"Open Admin Dashboard\" button. Always show a \"Logout\" button that signs the user out and returns them to the login screen.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4",
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "I’ll test immediately after the new build is live.",
-          "Please confirm: ... Firestore is fetched fresh on every login"
+          "Profile popup:\n- On clicking profile picture, open a popup.\n- Always show name + role.\n- If role is admin or super_admin, show:\n  \"Open Admin Dashboard\" button\n- Always show Logout button."
         ]
       },
       "acceptanceCriteria": [
-        "Smoke test documentation includes a step proving that an admin flipping `approved` in Firestore affects the very next login attempt without a hard refresh.",
-        "Smoke test documentation includes a step to confirm the document path is `users/{auth.uid}` and that no email-based lookups occur."
+        "Clicking the avatar opens a popup/menu anchored to the avatar button.",
+        "Popup contains visible text for the user `name` and `role`.",
+        "For `role in {admin, super_admin}`, popup shows a button labeled exactly \"Open Admin Dashboard\" that navigates to the admin area.",
+        "Popup always includes a \"Logout\" button that signs out and navigates to `/login`."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Add an in-app Admin Dashboard area within the same application (no separate admin app). Access must be restricted to users whose Firestore role is `admin` or `super_admin`. Include the following pages/sections: Dashboard (stats), Users list, Chats, Reports, Settings.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Admin Dashboard:\n- Accessible only if role is admin or super_admin.\n- Pages:\n  - Dashboard (stats)\n  - Users list\n  - Chats\n  - Reports\n  - Settings\n\nUI:\n- No separate admin app\n\nBuild everything inside one single application."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Navigating to an admin route while not `admin`/`super_admin` redirects back to the non-admin area (e.g., `/home`) and does not render admin content.",
+        "Admin Dashboard includes navigation to the 5 required pages/sections within the same SPA.",
+        "Dashboard page shows basic stats placeholders derived from Firestore where feasible (e.g., total users, approved users, pending users).",
+        "Chats/Reports/Settings pages can be UI placeholders but must exist and be reachable via the admin navigation."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Implement the Users list page in the Admin Dashboard that lists all user documents from `users` (including `super_admin` users) and supports user management actions with role-based permissions: Admins can approve users, block users, and change role between `user` and `admin`. Super admins can do all admin actions and can promote users to admin. Enforce that \"super_admin is also a normal user with extra permissions\" and appears in the user list.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "User behavior:\n- All users including super_admin must appear in the user list.\n- Super admin is also a normal user with extra permissions.\n\nUser Management:\n- Admin can:\n  - Approve users\n  - Block users\n  - Change role (user ↔ admin)\n- Super admin can:\n  - Do everything admin can\n  - Promote users to admin"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Users list shows all users in the `users` collection (admins and super_admins included).",
+        "Approve action updates the selected user document such that they can log in (i.e., `approved` becomes `true`).",
+        "Block action updates the selected user such that they cannot log in anymore (e.g., `approved` becomes `false`), and the UI reflects the blocked/unapproved state.",
+        "Role change action allows toggling `role` between `user` and `admin` for non-super_admin users according to the current operator’s permissions.",
+        "The UI prevents changing any user to `super_admin` via the dashboard and prevents demoting a `super_admin` user via the dashboard."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Update Firestore security rules to enforce the role-based permissions required by the admin dashboard and user management, while keeping regular users limited to reading/updating only their own profile (excluding role/approved changes). Ensure admins can read all users for listing. Ensure rules restrict any attempt to set `role` to `super_admin` via client writes and restrict modifications to existing `super_admin` users’ roles/approval by non-super_admins.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Accessible only if role is admin or super_admin.\n...\nUser Management:\n- Admin can:\n  - Approve users\n  - Block users\n  - Change role (user ↔ admin)\n- Super admin can:\n  - Do everything admin can\n  - Promote users to admin"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A non-admin authenticated user can read only `users/{auth.uid}` and cannot update `role` or `approved`.",
+        "An admin/super_admin can read all documents in `users` (required for the user list).",
+        "Client writes that attempt to create/update any document with `role == \"super_admin\"` are denied by Firestore rules (except for the first-user creation flow if supported by current rule strategy).",
+        "Updates to an existing `super_admin` user’s `role`/`approved` are rejected unless the requester is `super_admin`."
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "Apply a clean, WhatsApp-style, mobile-friendly UI across the unified app (auth screens, header, home, and admin dashboard) with consistent spacing, typography, and a green-forward palette (avoid blue/purple). Keep all user-facing text in English.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "UI:\n- Clean, WhatsApp-style simple UI\n- Mobile-friendly\n\nUse English for any user-facing text in the build request."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Primary navigation and key actions are easily usable on mobile widths (~360px) without horizontal scrolling.",
+        "Admin Dashboard navigation is usable on mobile (e.g., collapsible sidebar, tabs, or a responsive drawer).",
+        "All visible UI strings are in English.",
+        "Visual styling is consistent across screens and matches a simple WhatsApp-like aesthetic."
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "text": "Add a static app logo image asset and render it in the global header next to the app name.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Header:\n- Left: app logo + app name"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A logo file exists under `frontend/public/assets/generated/` and is used in the header.",
+        "Logo renders crisply at typical header sizes (~24–32px) on light and dark backgrounds."
       ]
     }
   ],
   "constraints": [
-    "Frontend files under `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, and `frontend/src/components/ui` are immutable and must not be edited.",
-    "Keep the approval-gated access model backed by Firestore user records; do not introduce new auth providers beyond the existing Firebase Email/Password + Internet Identity setup."
+    "Do not edit files under `frontend/src/components/ui` (compose them instead).",
+    "Do not modify immutable hook paths: `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`.",
+    "Keep the application as a single unified React app (no separate admin application).",
+    "Backend must remain single-actor if modified; only introduce `backend/migration.mo` if state migration is required."
   ],
   "nonGoals": [
-    "Do not add new product features (e.g., chat UI, dashboards) as part of this fix.",
-    "Do not change Firestore security rules unless required to support reading `users/{auth.uid}` (the goal is to fix client login logic).",
-    "Do not add password reset email functionality (Forgot Password remains admin-managed)."
+    "Implementing realtime chat or WebSocket-based messaging for the Chats page (UI placeholder is sufficient).",
+    "Integrating Firebase Storage or any external file storage for avatars (store `photoURL` as a string per requirements; it may be a data URL if needed).",
+    "Adding third-party authentication providers beyond Firebase Auth email/password.",
+    "Implementing push notifications, email sending, or external admin tooling."
   ],
   "imageRequirements": {
-    "required": [],
+    "required": [
+      "Flat chat-bubble logo icon with a simple green palette on transparent background (app-logo.dim_256x256.png)"
+    ],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

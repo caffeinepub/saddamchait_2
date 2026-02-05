@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { signInWithEmail } from '@/lib/firebase';
 import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
@@ -11,17 +11,20 @@ import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
 interface LoginScreenProps {
   onNavigateToSignup: () => void;
   onNavigateToReset: () => void;
+  onLoginSuccess: () => void;
 }
 
-export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: LoginScreenProps) {
+export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onLoginSuccess }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [pendingApproval, setPendingApproval] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPendingApproval(false);
     setIsLoggingIn(true);
 
     try {
@@ -31,12 +34,12 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: L
 
       if (result.success) {
         // Login successful - user is approved
-        console.log('LoginScreen - Login successful, user is approved');
-        // TODO: Navigate to main app or dashboard
+        console.log('LoginScreen - Login successful, user is approved, navigating to /home');
+        onLoginSuccess();
       } else if (result.needsApproval) {
         // User exists but not approved or profile missing
         console.log('LoginScreen - User needs approval');
-        setError('Your account is pending admin approval.');
+        setPendingApproval(true);
       } else if (result.error) {
         // Firebase error
         console.log('LoginScreen - Firebase error:', result.error);
@@ -69,6 +72,15 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: L
             </Alert>
           )}
 
+          {pendingApproval && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Your account is pending admin approval. Please contact an administrator to activate your account.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -79,6 +91,7 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: L
               onChange={(e) => {
                 setEmail(e.target.value);
                 setError('');
+                setPendingApproval(false);
               }}
               required
             />
@@ -94,6 +107,7 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset }: L
               onChange={(e) => {
                 setPassword(e.target.value);
                 setError('');
+                setPendingApproval(false);
               }}
               required
             />

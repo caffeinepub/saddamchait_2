@@ -1,43 +1,94 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T04:57:12.313Z",
-  "summary": "Docs were updated to describe the desired approval-gating behavior (fresh server reads from `users/{auth.uid}` using `getDocFromServer()` and related smoke tests). The only concrete code evidence in the diff is in `frontend/src/lib/firebase.ts`, which introduces/mentions a helper intended to fetch a user profile via a fresh server read, but the diff does not show the actual login flow being updated to call it, nor does it prove removal of any email-based lookup/cached approval logic in the login path.",
+  "generatedAt": "2026-02-05T22:43:16.199Z",
+  "summary": "Most frontend functionality for a unified app (global header + profile menu, in-app admin dashboard with 5 sections, admin route guarding, users list with approve/block/role toggle, and green-forward styling) appears implemented. However, there are key gaps/violations around first-user super_admin creation (blocked by Firestore rules), admin ability to modify super_admin approval in rules, the header not rendering on auth routes (REQ-3 AC), and the required logo asset file not evidenced in the diff.",
   "missing_requirements": [
     {
       "id": "REQ-2",
-      "requirement": "Update the Firebase login approval check so that every login attempt performs a fresh Firestore server read at `users/{auth.uid}` (server-forced, not cache-eligible) and uses `approved` boolean as the sole source of truth; if missing/not approved, sign out and show exact message.",
-      "reason": "The diff does not include the login flow implementation (e.g., `LoginScreen.tsx` or hook used by login), so there is no direct evidence that each login attempt is now performing a server-forced read of `doc(db, 'users', uid)` and enforcing sign-out + exact pending-approval message behavior based solely on the fresh `approved` value.",
+      "requirement": "First-ever signup must create the first account with role=\"super_admin\" and approved=true; all subsequent signups role=\"user\" and approved=false.",
+      "reason": "Although client code assigns super_admin/approved for the first user, Firestore rules as shown deny creating any user document with role == \"super_admin\", which would prevent the first-user flow from working.",
       "evidence": [
-        "frontend/src/lib/firebase.ts (truncated: helper is mentioned but login integration is not shown)",
-        "frontend-file-summaries.txt (describes login behavior but is not code evidence of implementation)"
+        "frontend/firestore.rules",
+        "frontend/src/lib/firebase.ts"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Remove/disable any email-based profile lookup and any cached approval logic in the login flow; ensure only `doc(db, 'users', uid)` is read and approval is never determined from stored/cached values.",
-      "reason": "No login-flow code diff is provided to verify that email-based lookups (e.g., `where('email'...)`) were removed or that any prior cached approval state (localStorage/React state/query cache) is no longer used during login attempts.",
+      "requirement": "Global header displayed on all pages/routes in the single app.",
+      "reason": "AppHeader is explicitly hidden on auth routes (/login, /signup, /reset), so not all routes/screens render the same header.",
       "evidence": [
-        "frontend/src/lib/firebase.ts (truncated; does not show removal of any prior email lookup logic in login flow)",
-        "frontend-file-summaries.txt (claims no email lookup/caching, but this is a summary file, not the login code itself)"
+        "frontend/src/App.tsx"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "requirement": "Firestore rules must restrict modifications to existing super_admin users’ role/approval by non-super_admins.",
+      "reason": "Rules allow any admin (isAdmin()) to update any user's approved status without excluding super_admin targets, enabling an admin to change a super_admin's approval (contrary to AC).",
+      "evidence": [
+        "frontend/firestore.rules"
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "requirement": "A logo file exists under frontend/public/assets/generated/ and is used in the header.",
+      "reason": "Header references /assets/generated/app-logo.dim_256x256.png, but the diff summary does not show the required image asset being added under frontend/public/assets/generated/.",
+      "evidence": [
+        "frontend/src/components/layout/AppHeader.tsx"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Removal of Internet Identity provider / “UI-only phase” behavior.",
-      "reason": "The BuildRequest explicitly constrains certain Internet Identity-related frontend files as immutable and does not request removing Internet Identity. The diff includes a statement claiming this removal in a summary file, but it is not part of the requested fix scope.",
+      "description": "Password reset flow implemented as UI-only with 'Admin-only manual reset' messaging and no Firebase password reset API call.",
+      "reason": "The BuildRequest did not request changing password reset behavior or adding admin-only manual reset messaging; it only specified auth via Firebase email/password and other admin/dashboard features.",
       "evidence": [
-        "frontend-file-summaries.txt (\"frontend/src/main.tsx\": \"... QueryClientProvider only (Internet Identity provider removed for UI-only phase).\")"
+        "frontend-file-summaries.txt",
+        "frontend/src/screens/PasswordResetScreen.tsx"
+      ]
+    },
+    {
+      "description": "Removed/changed Internet Identity integration in main.tsx.",
+      "reason": "BuildRequest constraints explicitly state not to modify immutable hook paths and `frontend/src/main.tsx`, but the diff summary indicates main.tsx was modified (\"Internet Identity provider removed for UI-only phase\").",
+      "evidence": [
+        "frontend-file-summaries.txt",
+        "frontend/src/main.tsx"
+      ]
+    },
+    {
+      "description": "Added extensive deployment and smoke-test documentation files.",
+      "reason": "BuildRequest did not ask for new deployment runbooks or smoke test checklists; these are additional deliverables beyond requested app features.",
+      "evidence": [
+        "frontend-file-summaries.txt",
+        "frontend/DEPLOYMENT.md",
+        "frontend/LIVE_SMOKE_TEST.md"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.74,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/DEPLOYMENT.md",
-    "frontend/LIVE_SMOKE_TEST.md",
+    "frontend/firestore.rules",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/UserRowActions.tsx",
+    "frontend/src/components/auth/AdminRouteGuard.tsx",
+    "frontend/src/components/layout/AppHeader.tsx",
+    "frontend/src/components/layout/ProfileMenu.tsx",
+    "frontend/src/hooks/useFirebaseAuthUser.ts",
+    "frontend/src/hooks/useFirestoreUserProfile.ts",
+    "frontend/src/hooks/useFirestoreUsersList.ts",
+    "frontend/src/index.css",
     "frontend/src/lib/firebase.ts",
+    "frontend/src/lib/firebaseTypes.ts",
+    "frontend/src/lib/utils.ts",
+    "frontend/src/screens/HomeScreen.tsx",
+    "frontend/src/screens/SignupScreen.tsx",
+    "frontend/src/screens/admin/AdminChatsScreen.tsx",
+    "frontend/src/screens/admin/AdminDashboardScreen.tsx",
+    "frontend/src/screens/admin/AdminLayout.tsx",
+    "frontend/src/screens/admin/AdminReportsScreen.tsx",
+    "frontend/src/screens/admin/AdminSettingsScreen.tsx",
+    "frontend/src/screens/admin/AdminUsersScreen.tsx",
     "project_state.json"
   ]
 }

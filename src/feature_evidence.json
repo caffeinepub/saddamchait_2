@@ -2,8 +2,32 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-firebase-login-approval-check-so-that-every-login-attempt-performs-a-fresh-firestore-server-read-for-the-authenticated-user-profile-at-the-exact-document-path-users-auth-uid-where-auth-uid-is-firebase-auth-currentuser-uid-user-uid-and-uses-that-document-s-approved-boolean-field-as-the-sole-source-of-truth-for-approval-gating",
-      "featureTitle": "Update the Firebase login approval check so that every login attempt performs a fresh Firestore server read for the authenticated user profile at the exact document path `users/{auth.uid}` (where `auth.uid` is Firebase Auth `currentUser.uid` / `user.uid`), and uses that document’s `approved` boolean field as the sole source of truth for approval gating.",
+      "featureId": "feature-align-the-firestore-user-document-schema-to-exactly-users-uid-with-fields-name-string-email-string-photourl-string-role-user-admin-super-admin-approved-boolean-and-createdat-firestore-timestamp-ensure-signup-writes-these-fields-and-that-subsequent-profile-reads-in-the-app-use-these-fields",
+      "featureTitle": "Align the Firestore user document schema to exactly `users/{uid}` with fields: `name` (string), `email` (string), `photoURL` (string), `role` (\"user\" | \"admin\" | \"super_admin\"), `approved` (boolean), and `createdAt` (Firestore timestamp). Ensure signup writes these fields and that subsequent profile reads in the app use these fields.",
+      "files": [
+        "frontend/src/lib/firebase.ts",
+        "frontend/src/lib/firebaseTypes.ts",
+        "frontend/src/screens/HomeScreen.tsx",
+        "frontend/src/screens/SignupScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-the-first-ever-signup-rule-when-the-users-collection-has-no-users-the-first-created-account-must-be-assigned-role-super-admin-and-approved-true-all-subsequent-signups-must-be-assigned-role-user-and-approved-false",
+      "featureTitle": "Implement the first-ever signup rule: when the users collection has no users, the first created account must be assigned `role = \"super_admin\"` and `approved = true`; all subsequent signups must be assigned `role = \"user\"` and `approved = false`.",
       "files": [
         "frontend/src/lib/firebase.ts"
       ],
@@ -23,10 +47,13 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-remove-disable-any-email-based-profile-lookup-and-any-cached-approval-logic-in-the-login-flow-ensure-there-are-no-firestore-queries-by-email-and-no-reuse-of-prior-approval-state-between-logins",
-      "featureTitle": "Remove/disable any email-based profile lookup and any cached approval logic in the login flow; ensure there are no Firestore queries by email and no reuse of prior approval state between logins.",
+      "featureId": "feature-add-a-global-header-that-is-displayed-on-all-pages-in-the-single-app-header-layout-left-side-shows-app-logo-app-name-right-side-shows-the-current-user-s-profile-picture-clickable-when-authenticated",
+      "featureTitle": "Add a global header that is displayed on all pages in the single app. Header layout: left side shows app logo + app name; right side shows the current user’s profile picture (clickable) when authenticated.",
       "files": [
-        "frontend/src/lib/firebase.ts"
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/AppHeader.tsx",
+        "frontend/src/hooks/useFirebaseAuthUser.ts",
+        "frontend/src/hooks/useFirestoreUserProfile.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -44,11 +71,13 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-update-the-live-smoke-test-deployment-verification-guidance-to-explicitly-validate-the-new-login-behavior-fresh-server-read-every-login-users-auth-uid-only-no-email-lookup-no-cached-approval-state-and-reference-the-expected-console-log-indicators-for-troubleshooting",
-      "featureTitle": "Update the LIVE smoke test/deployment verification guidance to explicitly validate the new login behavior (fresh server read every login, `users/{auth.uid}` only, no email lookup, no cached approval state) and reference the expected console/log indicators for troubleshooting.",
+      "featureId": "feature-implement-the-profile-popup-opened-by-clicking-the-header-avatar-the-popup-must-always-show-the-user-s-name-and-role-if-the-role-is-admin-or-super-admin-also-show-an-open-admin-dashboard-button-always-show-a-logout-button-that-signs-the-user-out-and-returns-them-to-the-login-screen",
+      "featureTitle": "Implement the profile popup opened by clicking the header avatar. The popup must always show the user’s name and role. If the role is `admin` or `super_admin`, also show an \"Open Admin Dashboard\" button. Always show a \"Logout\" button that signs the user out and returns them to the login screen.",
       "files": [
-        "frontend/DEPLOYMENT.md",
-        "frontend/LIVE_SMOKE_TEST.md"
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/AppHeader.tsx",
+        "frontend/src/components/layout/ProfileMenu.tsx",
+        "frontend/src/lib/firebase.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -62,6 +91,122 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-an-in-app-admin-dashboard-area-within-the-same-application-no-separate-admin-app-access-must-be-restricted-to-users-whose-firestore-role-is-admin-or-super-admin-include-the-following-pages-sections-dashboard-stats-users-list-chats-reports-settings",
+      "featureTitle": "Add an in-app Admin Dashboard area within the same application (no separate admin app). Access must be restricted to users whose Firestore role is `admin` or `super_admin`. Include the following pages/sections: Dashboard (stats), Users list, Chats, Reports, Settings.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/auth/AdminRouteGuard.tsx",
+        "frontend/src/screens/admin/AdminChatsScreen.tsx",
+        "frontend/src/screens/admin/AdminDashboardScreen.tsx",
+        "frontend/src/screens/admin/AdminLayout.tsx",
+        "frontend/src/screens/admin/AdminReportsScreen.tsx",
+        "frontend/src/screens/admin/AdminSettingsScreen.tsx",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-the-users-list-page-in-the-admin-dashboard-that-lists-all-user-documents-from-users-including-super-admin-users-and-supports-user-management-actions-with-role-based-permissions-admins-can-approve-users-block-users-and-change-role-between-user-and-admin-super-admins-can-do-all-admin-actions-and-can-promote-users-to-admin-enforce-that-super-admin-is-also-a-normal-user-with-extra-permissions-and-appears-in-the-user-list",
+      "featureTitle": "Implement the Users list page in the Admin Dashboard that lists all user documents from `users` (including `super_admin` users) and supports user management actions with role-based permissions: Admins can approve users, block users, and change role between `user` and `admin`. Super admins can do all admin actions and can promote users to admin. Enforce that \"super_admin is also a normal user with extra permissions\" and appears in the user list.",
+      "files": [
+        "frontend/src/components/admin/UserRowActions.tsx",
+        "frontend/src/hooks/useFirestoreUsersList.ts",
+        "frontend/src/lib/firebase.ts",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-firestore-security-rules-to-enforce-the-role-based-permissions-required-by-the-admin-dashboard-and-user-management-while-keeping-regular-users-limited-to-reading-updating-only-their-own-profile-excluding-role-approved-changes-ensure-admins-can-read-all-users-for-listing-ensure-rules-restrict-any-attempt-to-set-role-to-super-admin-via-client-writes-and-restrict-modifications-to-existing-super-admin-users-roles-approval-by-non-super-admins",
+      "featureTitle": "Update Firestore security rules to enforce the role-based permissions required by the admin dashboard and user management, while keeping regular users limited to reading/updating only their own profile (excluding role/approved changes). Ensure admins can read all users for listing. Ensure rules restrict any attempt to set `role` to `super_admin` via client writes and restrict modifications to existing `super_admin` users’ roles/approval by non-super_admins.",
+      "files": [
+        "frontend/firestore.rules"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-a-clean-whatsapp-style-mobile-friendly-ui-across-the-unified-app-auth-screens-header-home-and-admin-dashboard-with-consistent-spacing-typography-and-a-green-forward-palette-avoid-blue-purple-keep-all-user-facing-text-in-english",
+      "featureTitle": "Apply a clean, WhatsApp-style, mobile-friendly UI across the unified app (auth screens, header, home, and admin dashboard) with consistent spacing, typography, and a green-forward palette (avoid blue/purple). Keep all user-facing text in English.",
+      "files": [
+        "frontend/src/index.css",
+        "frontend/src/screens/admin/AdminLayout.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-8"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-static-app-logo-image-asset-and-render-it-in-the-global-header-next-to-the-app-name",
+      "featureTitle": "Add a static app logo image asset and render it in the global header next to the app name.",
+      "files": [
+        "frontend/src/components/layout/AppHeader.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-9"
       ],
       "confidence": "high"
     }
