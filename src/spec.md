@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the header avatar/name and the My Profile screen so they display user photo, name, and email strictly from Firestore `users/{auth.uid}` fields (`photoURL`, `name`, `email`) with reliable fresh server reads.
+**Goal:** Add in-app Super Admin access to an admin area and implement a pending-user approval flow driven by Firestore user profile fields.
 
 **Planned changes:**
-- Update My Profile (`/profile`) to read and render `photoURL`, `name`, and `email` ONLY from Firestore document `users/{auth.uid}` (no display binding to Firebase Auth user fields).
-- Implement deterministic avatar fallback on My Profile: if Firestore `photoURL` is missing/empty/whitespace, render initials derived from Firestore `name` instead of attempting an image URL.
-- Fix header top-right avatar and header/profile-menu displayed name to bind ONLY to Firestore `users/{auth.uid}`: use `photoURL` when non-empty; otherwise show initials from Firestore `name`; display name exactly from Firestore `name`.
-- Ensure the Firestore read targets the exact path `users/{auth.uid}` and performs an awaited fresh server read (not cache-only), with console logs showing the UID used and that the read is not from cache.
+- Show an "Admin Dashboard"/"User Approval" navigation item in the profile/avatar menu only when Firestore `users/{uid}.role === "super_admin"` (do not use Firebase Auth displayName/photoURL).
+- Add/confirm an in-app admin screen for super admins to review pending users (`approved == false`) and view key signup details (fullName, age, relation, phoneNumber, email, photoURL) before taking action.
+- Provide approve/reject actions per pending user: approve sets `approved=true` (and clears `rejected`), reject sets `rejected=true` while keeping `approved=false`, with the pending list refreshing after each action.
+- Add a pending approval screen and routing guard so users with Firestore `approved === false` are routed to the pending screen on signup/login, showing English text that includes the exact phrase "Pending approval for admin".
 
-**User-visible outcome:** The header and `/profile` consistently show the logged-in user’s Firestore-backed name, email, and photo (or initials fallback) based solely on `users/{uid}` data, without blank/misbound values when Firestore data exists.
+**User-visible outcome:** Super admins can open an admin area from the profile menu to review full pending-user details and approve/reject accounts, while unapproved users are blocked from the main app and see a clear "Pending approval for admin" message until approved.

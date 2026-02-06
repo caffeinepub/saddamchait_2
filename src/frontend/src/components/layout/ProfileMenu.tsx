@@ -8,13 +8,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, User, Users } from 'lucide-react';
+import { LogOut, User, Shield } from 'lucide-react';
 import { signOutUser } from '@/lib/firebase';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface ProfileMenuProps {
   userProfile: {
-    name: string;
+    fullName: string;
     role: string;
     photoURL: string;
     email: string;
@@ -25,11 +25,13 @@ interface ProfileMenuProps {
 
 export default function ProfileMenu({ userProfile, onNavigate, children }: ProfileMenuProps) {
   const queryClient = useQueryClient();
-  const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
+  const isSuperAdmin = userProfile.role === 'super_admin';
   const isUser = userProfile.role === 'user';
-  const displayName = userProfile.name || 'User';
+  
+  // Read ONLY from Firestore userProfile prop (NOT Firebase Auth)
+  const displayName = userProfile.fullName || 'User';
 
-  console.log('ProfileMenu - Rendering with name:', displayName, 'role:', userProfile.role);
+  console.log('ProfileMenu - Display name from Firestore:', displayName, 'role:', userProfile.role);
 
   const handleLogout = async () => {
     try {
@@ -45,7 +47,7 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
     onNavigate('/profile');
   };
 
-  const handleUserApproval = () => {
+  const handleAdminDashboard = () => {
     onNavigate('/admin/users');
   };
 
@@ -74,10 +76,10 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
           My Profile
         </DropdownMenuItem>
         
-        {isAdmin && (
-          <DropdownMenuItem onClick={handleUserApproval}>
-            <Users className="mr-2 h-4 w-4" />
-            User Approval
+        {isSuperAdmin && (
+          <DropdownMenuItem onClick={handleAdminDashboard}>
+            <Shield className="mr-2 h-4 w-4" />
+            Admin Dashboard
           </DropdownMenuItem>
         )}
         

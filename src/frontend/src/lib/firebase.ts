@@ -94,10 +94,10 @@ export async function isFirstUser(): Promise<boolean> {
 // Helper: Create user profile in Firestore
 export async function createUserProfile(
   profileData: {
-    name: string;
+    fullName: string;
     age: number;
     relation: string;
-    phone: string;
+    phoneNumber: string;
     email: string;
     photoURL: string;
   }
@@ -125,12 +125,12 @@ export async function createUserProfile(
 
   console.log('createUserProfile - Creating profile for uid:', uid, 'role:', role, 'approved:', approved);
 
-  // Write to users/{uid} using the authenticated user's UID
+  // Write to users/{uid} using the authenticated user's UID with EXACT Firestore field names
   await setDoc(doc(db, 'users', uid), {
-    name: profileData.name,
+    fullName: profileData.fullName,
     age: profileData.age,
     relation: profileData.relation,
-    phone: profileData.phone,
+    phoneNumber: profileData.phoneNumber,
     email: email,
     photoURL: profileData.photoURL,
     role,
@@ -144,7 +144,7 @@ export async function createUserProfile(
 }
 
 // Helper: Get user profile from Firestore with FRESH server read (no cache)
-export async function getUserProfile(uid: string): Promise<{ name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean } | null> {
+export async function getUserProfile(uid: string): Promise<{ fullName: string; age: number; relation: string; phoneNumber: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean } | null> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -152,13 +152,15 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
     const modules = await loadFirebaseModules();
     const { doc, getDocFromServer } = modules.firestore;
     
-    console.log('getUserProfile - Fetching FRESH server data for uid:', uid);
+    console.log('=== FIRESTORE PROFILE FETCH DEBUG ===');
+    console.log('getUserProfile - Fetching from path: users/' + uid);
+    console.log('getUserProfile - Using getDocFromServer() for FRESH server read (no cache)');
     
     // Use getDocFromServer() to force fresh read from server, bypassing cache entirely
     const userDocRef = doc(db, 'users', uid);
     const userDoc = await getDocFromServer(userDocRef);
     
-    console.log('getUserProfile - Document snapshot metadata:', {
+    console.log('getUserProfile - Snapshot metadata:', {
       exists: userDoc.exists(),
       fromCache: userDoc.metadata.fromCache,
       hasPendingWrites: userDoc.metadata.hasPendingWrites
@@ -167,23 +169,38 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
     if (userDoc.exists()) {
       const data = userDoc.data();
       
+      // LOG EXACT FIRESTORE FIELD NAMES (case-sensitive)
+      console.log('=== EXACT FIRESTORE DOCUMENT FIELDS (case-sensitive) ===');
+      console.log('All field keys in Firestore document:', Object.keys(data));
+      console.log('Full name field detected:', data.fullName !== undefined ? 'fullName' : 'NOT FOUND');
+      console.log('Email field detected:', data.email !== undefined ? 'email' : 'NOT FOUND');
+      console.log('Profile photo field detected:', data.photoURL !== undefined ? 'photoURL' : 'NOT FOUND');
+      console.log('Phone number field detected:', data.phoneNumber !== undefined ? 'phoneNumber' : 'NOT FOUND');
+      console.log('=== RAW FIELD VALUES ===');
+      console.log('data.fullName =', data.fullName);
+      console.log('data.email =', data.email);
+      console.log('data.photoURL =', data.photoURL ? data.photoURL.substring(0, 100) + '...' : '(empty or undefined)');
+      console.log('data.phoneNumber =', data.phoneNumber);
+      console.log('=== END FIRESTORE FIELD INSPECTION ===');
+      
       // Explicitly check approved field - must be exactly true (boolean)
       const approved = data.approved === true;
       const rejected = data.rejected === true;
       const blocked = data.blocked === true;
       const role = data.role ?? 'user';
-      const name = data.name ?? '';
+      const fullName = data.fullName ?? '';
       const age = data.age ?? 0;
       const relation = data.relation ?? '';
-      const phone = data.phone ?? '';
+      const phoneNumber = data.phoneNumber ?? '';
       const email = data.email ?? '';
       const photoURL = data.photoURL ?? '';
       
-      console.log('getUserProfile - Fresh server data retrieved:', {
+      console.log('getUserProfile - Normalized profile data returned to UI:', {
         uid,
-        name,
+        fullName,
         email,
         photoURL: photoURL.substring(0, 50) + (photoURL.length > 50 ? '...' : ''),
+        phoneNumber,
         approved,
         rejected,
         blocked,
@@ -192,10 +209,10 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
       });
       
       return {
-        name,
+        fullName,
         age,
         relation,
-        phone,
+        phoneNumber,
         email,
         photoURL,
         approved,
@@ -214,7 +231,7 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
 }
 
 // Helper: Get all users (admin only)
-export async function getAllUsers(): Promise<Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }>> {
+export async function getAllUsers(): Promise<Array<{ uid: string; fullName: string; age: number; relation: string; phoneNumber: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }>> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -225,15 +242,15 @@ export async function getAllUsers(): Promise<Array<{ uid: string; name: string; 
     const usersRef = collection(db, 'users');
     const snapshot = await getDocs(usersRef);
     
-    const users: Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }> = [];
+    const users: Array<{ uid: string; fullName: string; age: number; relation: string; phoneNumber: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
       users.push({
         uid: doc.id,
-        name: data.name ?? '',
+        fullName: data.fullName ?? '',
         age: data.age ?? 0,
         relation: data.relation ?? '',
-        phone: data.phone ?? '',
+        phoneNumber: data.phoneNumber ?? '',
         email: data.email ?? '',
         photoURL: data.photoURL ?? '',
         role: data.role ?? 'user',
@@ -252,7 +269,7 @@ export async function getAllUsers(): Promise<Array<{ uid: string; name: string; 
 }
 
 // Helper: Get pending users (approved === false)
-export async function getPendingUsers(): Promise<Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }>> {
+export async function getPendingUsers(): Promise<Array<{ uid: string; fullName: string; age: number; relation: string; phoneNumber: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }>> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -264,15 +281,15 @@ export async function getPendingUsers(): Promise<Array<{ uid: string; name: stri
     const q = query(usersRef, where('approved', '==', false));
     const snapshot = await getDocs(q);
     
-    const users: Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }> = [];
+    const users: Array<{ uid: string; fullName: string; age: number; relation: string; phoneNumber: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
       users.push({
         uid: doc.id,
-        name: data.name ?? '',
+        fullName: data.fullName ?? '',
         age: data.age ?? 0,
         relation: data.relation ?? '',
-        phone: data.phone ?? '',
+        phoneNumber: data.phoneNumber ?? '',
         email: data.email ?? '',
         photoURL: data.photoURL ?? '',
         role: data.role ?? 'user',
@@ -291,7 +308,7 @@ export async function getPendingUsers(): Promise<Array<{ uid: string; name: stri
 }
 
 // Helper: Get approved users (including current user)
-export async function getApprovedUsers(currentUid: string): Promise<Array<{ uid: string; name: string; email: string; photoURL: string; role: string; approved: boolean }>> {
+export async function getApprovedUsers(currentUid: string): Promise<Array<{ uid: string; fullName: string; email: string; photoURL: string; role: string; approved: boolean }>> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -303,12 +320,12 @@ export async function getApprovedUsers(currentUid: string): Promise<Array<{ uid:
     const q = query(usersRef, where('approved', '==', true));
     const snapshot = await getDocs(q);
     
-    const users: Array<{ uid: string; name: string; email: string; photoURL: string; role: string; approved: boolean }> = [];
+    const users: Array<{ uid: string; fullName: string; email: string; photoURL: string; role: string; approved: boolean }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
       users.push({
         uid: doc.id,
-        name: data.name ?? '',
+        fullName: data.fullName ?? '',
         email: data.email ?? '',
         photoURL: data.photoURL ?? '',
         role: data.role ?? 'user',
@@ -623,10 +640,10 @@ export async function signUpWithEmail(
   email: string,
   password: string,
   profileData: {
-    name: string;
+    fullName: string;
     age: number;
     relation: string;
-    phone: string;
+    phoneNumber: string;
     photoURL: string;
   }
 ): Promise<{ success: boolean; error?: string; isProfileError?: boolean; isFirstUser?: boolean }> {

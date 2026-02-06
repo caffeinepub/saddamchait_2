@@ -8,7 +8,7 @@ import { Mail, User, Shield } from 'lucide-react';
 export default function ProfileScreen() {
   const { data: userProfile, isLoading } = useFirestoreUserProfile();
 
-  console.log('ProfileScreen - userProfile:', userProfile, 'isLoading:', isLoading);
+  console.log('ProfileScreen - Rendering with userProfile:', userProfile, 'isLoading:', isLoading);
 
   if (isLoading) {
     return (
@@ -33,27 +33,30 @@ export default function ProfileScreen() {
     );
   }
 
-  const getInitials = (name: string) => {
-    if (!name || name.trim().length === 0) return '??';
-    const parts = name.trim().split(/\s+/);
+  const getInitials = (fullName: string) => {
+    if (!fullName || fullName.trim().length === 0) return '??';
+    const parts = fullName.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return fullName.slice(0, 2).toUpperCase();
   };
 
   const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
+  
+  // Read ONLY from Firestore userProfile (NOT Firebase Auth)
   const photoURL = userProfile.photoURL?.trim() || '';
   const hasPhoto = photoURL.length > 0;
-  const displayName = userProfile.name || 'Unknown User';
-  const displayEmail = userProfile.email || 'No email';
+  const displayName = userProfile.fullName;
+  const displayEmail = userProfile.email;
 
-  console.log('ProfileScreen - Rendering with:', {
-    hasPhoto,
-    photoURL,
-    displayName,
-    displayEmail,
-    role: userProfile.role
+  console.log('ProfileScreen - Display bindings:', {
+    displayName: displayName,
+    displayEmail: displayEmail,
+    hasPhoto: hasPhoto,
+    photoURL: hasPhoto ? photoURL.substring(0, 50) + '...' : '(empty)',
+    role: userProfile.role,
+    source: 'Firestore users/{uid}'
   });
 
   return (

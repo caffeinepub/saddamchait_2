@@ -11,7 +11,7 @@ export default function HomeScreen() {
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tight">
-              Welcome{userProfile?.name ? `, ${userProfile.name}` : ''}!
+              Welcome{userProfile?.fullName ? `, ${userProfile.fullName}` : ''}!
             </h2>
             <p className="text-muted-foreground">
               Your account is active and ready to use.

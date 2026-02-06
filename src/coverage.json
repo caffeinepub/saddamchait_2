@@ -1,63 +1,56 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T02:56:51.690Z",
+  "generatedAt": "2026-02-06T05:02:29.656Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 4,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Ensure the My Profile screen renders the logged-in user’s profile photo, full name, and email address by reading ONLY from Firestore document path `users/{auth.uid}` and binding ONLY to the existing Firestore field names `photoURL`, `name`, and `email` (no reads from Firebase Auth user fields for display).",
+        "summary": "Ensure the first registered user (role: \"super_admin\") can access an in-app Super Admin dashboard from the profile/avatar menu, without relying on Firebase Auth displayName/photoURL (use Firestore `users/{uid}.role` only).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/screens/ProfileScreen.tsx",
-          "frontend/src/hooks/useFirestoreUserProfile.ts"
+          "frontend/src/components/layout/ProfileMenu.tsx",
+          "frontend/src/components/layout/AppHeader.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/screens/ProfileScreen.tsx",
-          "frontend/src/hooks/useFirestoreUserProfile.ts"
+          "frontend/src/components/layout/ProfileMenu.tsx",
+          "frontend/src/components/layout/AppHeader.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "On the My Profile screen, implement a deterministic avatar fallback based strictly on Firestore: if `users/{uid}.photoURL` is missing/empty/whitespace, do not render an image URL and instead render initials derived from `users/{uid}.name`.",
+        "summary": "Implement/confirm an Admin Users approval screen that lets super admins review full signup details for each pending user and approve/reject them from within the app.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/screens/ProfileScreen.tsx"
+          "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "frontend/src/components/admin/UserRowActions.tsx",
+          "frontend/src/components/admin/PendingUserDetailsDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/screens/ProfileScreen.tsx"
+          "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "frontend/src/components/admin/UserRowActions.tsx",
+          "frontend/src/components/admin/PendingUserDetailsDialog.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Fix the header’s top-right avatar and displayed header/profile-menu name so they render from Firestore `users/{uid}` only: use `photoURL` for the avatar image when present; otherwise show initials derived from Firestore `name`, and ensure the displayed name in the header/profile menu is exactly Firestore `name` (undo any incorrect name source/binding).",
+        "summary": "Ensure that newly signed-up or newly logged-in unapproved users see an in-app pending message that clearly states the account is pending admin approval (use English user-facing text).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/layout/AppHeader.tsx",
-          "frontend/src/components/layout/ProfileMenu.tsx"
+          "frontend/src/App.tsx",
+          "frontend/src/screens/PendingApprovalScreen.tsx",
+          "frontend/src/components/auth/AuthenticatedRouteGuard.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/layout/AppHeader.tsx",
-          "frontend/src/components/layout/ProfileMenu.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Verify the Firestore read is performed against the exact document path `users/{auth.uid}` with an awaited fresh server read (no cache) so UI reliably updates based on existing Firestore data; add/keep console logs sufficient to confirm the UID used and that the read is not from cache.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useFirestoreUserProfile.ts",
-          "frontend/src/lib/firebase.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useFirestoreUserProfile.ts",
-          "frontend/src/lib/firebase.ts"
+          "frontend/src/App.tsx",
+          "frontend/src/screens/PendingApprovalScreen.tsx",
+          "frontend/src/components/auth/AuthenticatedRouteGuard.tsx"
         ]
       }
     ]
@@ -67,11 +60,14 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/PendingUserDetailsDialog.tsx",
+    "frontend/src/components/admin/UserRowActions.tsx",
+    "frontend/src/components/auth/AuthenticatedRouteGuard.tsx",
     "frontend/src/components/layout/AppHeader.tsx",
     "frontend/src/components/layout/ProfileMenu.tsx",
-    "frontend/src/hooks/useFirestoreUserProfile.ts",
-    "frontend/src/lib/firebase.ts",
-    "frontend/src/screens/ProfileScreen.tsx",
+    "frontend/src/screens/PendingApprovalScreen.tsx",
+    "frontend/src/screens/admin/AdminUsersScreen.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

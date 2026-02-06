@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-the-my-profile-screen-renders-the-logged-in-user-s-profile-photo-full-name-and-email-address-by-reading-only-from-firestore-document-path-users-auth-uid-and-binding-only-to-the-existing-firestore-field-names-photourl-name-and-email-no-reads-from-firebase-auth-user-fields-for-display",
-      "featureTitle": "Ensure the My Profile screen renders the logged-in user’s profile photo, full name, and email address by reading ONLY from Firestore document path `users/{auth.uid}` and binding ONLY to the existing Firestore field names `photoURL`, `name`, and `email` (no reads from Firebase Auth user fields for display).",
+      "featureId": "feature-ensure-the-first-registered-user-role-super-admin-can-access-an-in-app-super-admin-dashboard-from-the-profile-avatar-menu-without-relying-on-firebase-auth-displayname-photourl-use-firestore-users-uid-role-only",
+      "featureTitle": "Ensure the first registered user (role: \"super_admin\") can access an in-app Super Admin dashboard from the profile/avatar menu, without relying on Firebase Auth displayName/photoURL (use Firestore `users/{uid}.role` only).",
       "files": [
-        "frontend/src/hooks/useFirestoreUserProfile.ts",
-        "frontend/src/screens/ProfileScreen.tsx"
+        "frontend/src/components/layout/AppHeader.tsx",
+        "frontend/src/components/layout/ProfileMenu.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -24,10 +24,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-on-the-my-profile-screen-implement-a-deterministic-avatar-fallback-based-strictly-on-firestore-if-users-uid-photourl-is-missing-empty-whitespace-do-not-render-an-image-url-and-instead-render-initials-derived-from-users-uid-name",
-      "featureTitle": "On the My Profile screen, implement a deterministic avatar fallback based strictly on Firestore: if `users/{uid}.photoURL` is missing/empty/whitespace, do not render an image URL and instead render initials derived from `users/{uid}.name`.",
+      "featureId": "feature-implement-confirm-an-admin-users-approval-screen-that-lets-super-admins-review-full-signup-details-for-each-pending-user-and-approve-reject-them-from-within-the-app",
+      "featureTitle": "Implement/confirm an Admin Users approval screen that lets super admins review full signup details for each pending user and approve/reject them from within the app.",
       "files": [
-        "frontend/src/screens/ProfileScreen.tsx"
+        "frontend/src/components/admin/PendingUserDetailsDialog.tsx",
+        "frontend/src/components/admin/UserRowActions.tsx",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -45,11 +47,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-header-s-top-right-avatar-and-displayed-header-profile-menu-name-so-they-render-from-firestore-users-uid-only-use-photourl-for-the-avatar-image-when-present-otherwise-show-initials-derived-from-firestore-name-and-ensure-the-displayed-name-in-the-header-profile-menu-is-exactly-firestore-name-undo-any-incorrect-name-source-binding",
-      "featureTitle": "Fix the header’s top-right avatar and displayed header/profile-menu name so they render from Firestore `users/{uid}` only: use `photoURL` for the avatar image when present; otherwise show initials derived from Firestore `name`, and ensure the displayed name in the header/profile menu is exactly Firestore `name` (undo any incorrect name source/binding).",
+      "featureId": "feature-ensure-that-newly-signed-up-or-newly-logged-in-unapproved-users-see-an-in-app-pending-message-that-clearly-states-the-account-is-pending-admin-approval-use-english-user-facing-text",
+      "featureTitle": "Ensure that newly signed-up or newly logged-in unapproved users see an in-app pending message that clearly states the account is pending admin approval (use English user-facing text).",
       "files": [
-        "frontend/src/components/layout/AppHeader.tsx",
-        "frontend/src/components/layout/ProfileMenu.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/components/auth/AuthenticatedRouteGuard.tsx",
+        "frontend/src/screens/PendingApprovalScreen.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -63,28 +66,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-verify-the-firestore-read-is-performed-against-the-exact-document-path-users-auth-uid-with-an-awaited-fresh-server-read-no-cache-so-ui-reliably-updates-based-on-existing-firestore-data-add-keep-console-logs-sufficient-to-confirm-the-uid-used-and-that-the-read-is-not-from-cache",
-      "featureTitle": "Verify the Firestore read is performed against the exact document path `users/{auth.uid}` with an awaited fresh server read (no cache) so UI reliably updates based on existing Firestore data; add/keep console logs sufficient to confirm the UID used and that the read is not from cache.",
-      "files": [
-        "frontend/src/hooks/useFirestoreUserProfile.ts",
-        "frontend/src/lib/firebase.ts"
-      ],
-      "components": [
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "camera@1.0.0",
-        "authorization@4.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
       ],
       "confidence": "high"
     }

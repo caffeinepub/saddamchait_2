@@ -1,8 +1,8 @@
 export interface UserProfile {
-  name: string;
+  fullName: string;
   age: number;
   relation: string;
-  phone: string;
+  phoneNumber: string;
   email: string;
   photoURL: string;
   role: 'super_admin' | 'helper_admin' | 'user';
@@ -13,10 +13,10 @@ export interface UserProfile {
 }
 
 export interface SignupData {
-  name: string;
+  fullName: string;
   age: number;
   relation: string;
-  phone: string;
+  phoneNumber: string;
   email: string;
   photoURL: string;
 }

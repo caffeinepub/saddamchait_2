@@ -76,43 +76,67 @@ function AppContent() {
         ) : currentRoute === '/pending-approval' ? (
           <PendingApprovalScreen onNavigateToLogin={() => navigate('/login')} />
         ) : currentRoute === '/profile' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+          <AuthenticatedRouteGuard 
+            onUnauthorized={() => navigate('/login')}
+            onUnapproved={() => navigate('/pending-approval')}
+          >
             <ProfileScreen />
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/users' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+          <AuthenticatedRouteGuard 
+            onUnauthorized={() => navigate('/login')}
+            onUnapproved={() => navigate('/pending-approval')}
+          >
             <UsersScreen onNavigate={navigate} />
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/chat' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+          <AuthenticatedRouteGuard 
+            onUnauthorized={() => navigate('/login')}
+            onUnapproved={() => navigate('/pending-approval')}
+          >
             <ChatScreen onNavigate={navigate} />
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+          <AuthenticatedRouteGuard 
+            onUnauthorized={() => navigate('/login')}
+            onUnapproved={() => navigate('/pending-approval')}
+          >
             <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
               <AdminDashboardScreen onNavigate={navigate} />
             </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/users' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+          <AuthenticatedRouteGuard 
+            onUnauthorized={() => navigate('/login')}
+            onUnapproved={() => navigate('/pending-approval')}
+          >
             <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
               <AdminUsersScreen onNavigate={navigate} />
             </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/chats' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+          <AuthenticatedRouteGuard 
+            onUnauthorized={() => navigate('/login')}
+            onUnapproved={() => navigate('/pending-approval')}
+          >
             <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
               <AdminChatsScreen onNavigate={navigate} />
             </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/reports' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+          <AuthenticatedRouteGuard 
+            onUnauthorized={() => navigate('/login')}
+            onUnapproved={() => navigate('/pending-approval')}
+          >
             <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
               <AdminReportsScreen onNavigate={navigate} />
             </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/settings' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+          <AuthenticatedRouteGuard 
+            onUnauthorized={() => navigate('/login')}
+            onUnapproved={() => navigate('/pending-approval')}
+          >
             <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
               <AdminSettingsScreen onNavigate={navigate} />
             </AdminRouteGuard>

@@ -1,18 +1,61 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T02:56:51.687Z",
-  "summary": "Changes focus on reading and displaying user profile (name/email/photoURL) from a Firestore-backed hook in both the App header/profile menu and the /profile (My Profile) screen, with initials fallback when photoURL is empty, and added console logging around profile fetch/rendering. The Firestore wrapper indicates a fresh server read approach for getUserProfile.",
-  "missing_requirements": [],
-  "hallucinated_features": [],
-  "confidence": 0.74,
+  "generatedAt": "2026-02-06T05:02:29.653Z",
+  "summary": "Diff implements Firestore-based role/approval gating, adds Super Admin menu entry to reach admin users screen, and introduces a pending-approval screen with the required phrase. Admin pending-users UI and details dialog are added, but the exact Firestore field-update semantics for approve/reject are not evidenced in the provided diff summary, and several extra admin moderation features appear unrequested.",
+  "missing_requirements": [
+    {
+      "id": "REQ-2",
+      "requirement": "Approving sets `approved=true` (and clears `rejected`), rejecting sets `rejected=true` and keeps `approved=false`.",
+      "reason": "UI actions exist, but the diff summary does not show the Firestore update logic (e.g., clearing `rejected` on approve or ensuring `approved=false` on reject). The hook or mutation implementation is not included in the shown snippets.",
+      "evidence": [
+        "frontend/src/components/admin/UserRowActions.tsx",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "After performing an action, the pending list refreshes and the updated user no longer appears as pending when approved.",
+      "reason": "The screen uses a hook (`useFirestorePendingUsersList`) and has action callbacks, but the diff summary does not provide evidence of refetch/invalidation logic or that the query is filtered strictly to `approved == false` after mutation.",
+      "evidence": [
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Admin actions to Block User and Promote to Helper Admin.",
+      "reason": "BuildRequest only asks for approve/reject pending users; block/promote flows are additional moderation features not requested.",
+      "evidence": [
+        "frontend/src/components/admin/UserRowActions.tsx"
+      ]
+    },
+    {
+      "description": "Clickable super-admin avatar directly navigates to /admin/users.",
+      "reason": "REQ-1 specifies an explicit navigation item in the profile/avatar dropdown; direct navigation on avatar click is an extra behavior not requested.",
+      "evidence": [
+        "frontend/src/components/layout/AppHeader.tsx"
+      ]
+    },
+    {
+      "description": "Pending screen claims an email notification will be sent upon approval.",
+      "reason": "Non-goal states not to implement real email notifications; while no integration is shown, the UI text asserts an email notification will occur, which is beyond the requested scope and may be misleading.",
+      "evidence": [
+        "frontend/src/screens/PendingApprovalScreen.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.68,
   "changed_files": [
     "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/PendingUserDetailsDialog.tsx",
+    "frontend/src/components/admin/UserRowActions.tsx",
+    "frontend/src/components/auth/AuthenticatedRouteGuard.tsx",
     "frontend/src/components/layout/AppHeader.tsx",
     "frontend/src/components/layout/ProfileMenu.tsx",
-    "frontend/src/hooks/useFirestoreUserProfile.ts",
-    "frontend/src/lib/firebase.ts",
-    "frontend/src/screens/ProfileScreen.tsx",
+    "frontend/src/screens/PendingApprovalScreen.tsx",
+    "frontend/src/screens/admin/AdminUsersScreen.tsx",
     "project_state.json"
   ]
 }

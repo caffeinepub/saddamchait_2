@@ -16,10 +16,10 @@ interface SignupScreenProps {
 }
 
 export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: SignupScreenProps) {
-  const [name, setName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [age, setAge] = useState('');
   const [relation, setRelation] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -120,8 +120,8 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
       newErrors.profileImage = profileImage.error || 'Invalid profile photo';
     }
 
-    if (!name.trim()) {
-      newErrors.name = 'Name is required';
+    if (!fullName.trim()) {
+      newErrors.fullName = 'Name is required';
     }
 
     if (!age.trim()) {
@@ -137,10 +137,10 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
       newErrors.relation = 'Relation is required';
     }
 
-    if (!phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\+?[\d\s\-()]+$/.test(phone)) {
-      newErrors.phone = 'Please enter a valid phone number';
+    if (!phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (!/^\+?[\d\s\-()]+$/.test(phoneNumber)) {
+      newErrors.phoneNumber = 'Please enter a valid phone number';
     }
 
     if (!email.trim()) {
@@ -177,10 +177,10 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
 
     try {
       const result = await signUpWithEmail(email, password, {
-        name,
+        fullName,
         age: parseInt(age, 10),
         relation,
-        phone,
+        phoneNumber,
         photoURL: profileImage?.dataUrl || '',
       });
 
@@ -372,19 +372,19 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name *</Label>
+            <Label htmlFor="fullName">Full Name *</Label>
             <Input
-              id="name"
+              id="fullName"
               type="text"
               placeholder="John Doe"
-              value={name}
+              value={fullName}
               onChange={(e) => {
-                setName(e.target.value);
-                setErrors((prev) => ({ ...prev, name: '' }));
+                setFullName(e.target.value);
+                setErrors((prev) => ({ ...prev, fullName: '' }));
               }}
             />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name}</p>
+            {errors.fullName && (
+              <p className="text-xs text-destructive">{errors.fullName}</p>
             )}
           </div>
 
@@ -425,19 +425,19 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number *</Label>
+            <Label htmlFor="phoneNumber">Phone Number *</Label>
             <Input
-              id="phone"
+              id="phoneNumber"
               type="tel"
               placeholder="+1 234 567 8900"
-              value={phone}
+              value={phoneNumber}
               onChange={(e) => {
-                setPhone(e.target.value);
-                setErrors((prev) => ({ ...prev, phone: '' }));
+                setPhoneNumber(e.target.value);
+                setErrors((prev) => ({ ...prev, phoneNumber: '' }));
               }}
             />
-            {errors.phone && (
-              <p className="text-xs text-destructive">{errors.phone}</p>
+            {errors.phoneNumber && (
+              <p className="text-xs text-destructive">{errors.phoneNumber}</p>
             )}
           </div>
 

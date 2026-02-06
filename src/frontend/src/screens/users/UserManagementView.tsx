@@ -29,12 +29,12 @@ export default function UserManagementView() {
     },
   });
 
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(/\s+/);
+  const getInitials = (fullName: string) => {
+    const parts = fullName.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return fullName.slice(0, 2).toUpperCase();
   };
 
   if (isLoading) {
@@ -66,12 +66,12 @@ export default function UserManagementView() {
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <Avatar className="h-12 w-12 shrink-0">
-                      <AvatarImage src={user.photoURL} alt={user.name} />
-                      <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                      <AvatarImage src={user.photoURL} alt={user.fullName} />
+                      <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium truncate">{user.name}</p>
+                        <p className="font-medium truncate">{user.fullName}</p>
                         <Badge variant="outline" className="text-xs capitalize shrink-0">
                           {user.role.replace('_', ' ')}
                         </Badge>

@@ -62,12 +62,12 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
     },
   });
 
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(/\s+/);
+  const getInitials = (fullName: string) => {
+    const parts = fullName.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return fullName.slice(0, 2).toUpperCase();
   };
 
   const incomingRequests = chatRequests.filter((req) => req.toUserId === authUser?.uid && req.status === 'pending');
@@ -110,11 +110,11 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <Avatar className="h-10 w-10 shrink-0">
-                        <AvatarImage src={sender.photoURL} alt={sender.name} />
-                        <AvatarFallback>{getInitials(sender.name)}</AvatarFallback>
+                        <AvatarImage src={sender.photoURL} alt={sender.fullName} />
+                        <AvatarFallback>{getInitials(sender.fullName)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{sender.name}</p>
+                        <p className="font-medium truncate">{sender.fullName}</p>
                         <p className="text-xs text-muted-foreground">wants to chat with you</p>
                       </div>
                     </div>
@@ -180,12 +180,12 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Avatar className="h-10 w-10 shrink-0">
-                          <AvatarImage src={user.photoURL} alt={user.name} />
-                          <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                          <AvatarImage src={user.photoURL} alt={user.fullName} />
+                          <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium truncate">{user.name}</p>
+                            <p className="font-medium truncate">{user.fullName}</p>
                             {user.role !== 'user' && (
                               <Badge variant="outline" className="text-xs shrink-0">
                                 {user.role.replace('_', ' ')}

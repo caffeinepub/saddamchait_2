@@ -17,7 +17,7 @@ export default function PendingApprovalScreen({ onNavigateToLogin }: PendingAppr
             <Clock className="h-8 w-8 text-warning" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">Pending Admin Approval</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Pending approval for admin</h1>
             <p className="text-sm text-muted-foreground">
               Your account is awaiting approval from an administrator
             </p>

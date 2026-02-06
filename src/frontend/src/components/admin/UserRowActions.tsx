@@ -17,13 +17,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserCheck, UserX, Ban, Shield } from 'lucide-react';
+import { MoreHorizontal, UserCheck, UserX, Ban, Shield, Eye } from 'lucide-react';
 import { useState } from 'react';
 
 interface UserRowActionsProps {
   user: {
     uid: string;
-    name: string;
+    fullName: string;
     role: string;
     approved: boolean;
     rejected?: boolean;
@@ -36,6 +36,7 @@ interface UserRowActionsProps {
   onReject: () => void;
   onBlock?: () => void;
   onPromoteToHelperAdmin?: () => void;
+  onViewDetails?: () => void;
   isUpdating: boolean;
 }
 
@@ -48,6 +49,7 @@ export default function UserRowActions({
   onReject,
   onBlock,
   onPromoteToHelperAdmin,
+  onViewDetails,
   isUpdating,
 }: UserRowActionsProps) {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -91,6 +93,13 @@ export default function UserRowActions({
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
           
+          {onViewDetails && (
+            <DropdownMenuItem onClick={onViewDetails}>
+              <Eye className="mr-2 h-4 w-4" />
+              View Details
+            </DropdownMenuItem>
+          )}
+          
           <DropdownMenuItem onClick={() => setShowApproveDialog(true)}>
             <UserCheck className="mr-2 h-4 w-4" />
             Approve User
@@ -125,7 +134,7 @@ export default function UserRowActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Approve User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to approve {user.name}? They will be able to log in to the application.
+              Are you sure you want to approve {user.fullName}? They will be able to log in to the application.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -140,7 +149,7 @@ export default function UserRowActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Reject User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to reject {user.name}? They will see a rejection message when trying to log in.
+              Are you sure you want to reject {user.fullName}? They will see a rejection message when trying to log in.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -159,7 +168,7 @@ export default function UserRowActions({
               <AlertDialogHeader>
                 <AlertDialogTitle>Block User</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to block {user.name}? They will be permanently blocked from accessing the application.
+                  Are you sure you want to block {user.fullName}? They will be permanently blocked from accessing the application.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -176,7 +185,7 @@ export default function UserRowActions({
               <AlertDialogHeader>
                 <AlertDialogTitle>Promote to Helper Admin</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to promote {user.name} to Helper Admin? They will be able to approve and reject users, but cannot modify roles or access sensitive information.
+                  Are you sure you want to promote {user.fullName} to Helper Admin? They will be able to approve and reject users, but cannot modify roles or access sensitive information.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

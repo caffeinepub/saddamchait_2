@@ -12,9 +12,9 @@ export function useFirestoreUserProfile() {
         console.log('useFirestoreUserProfile - No auth user, returning null');
         return null;
       }
-      console.log('useFirestoreUserProfile - Fetching profile for uid:', authUser.uid);
+      console.log('useFirestoreUserProfile - Triggering getUserProfile for uid:', authUser.uid);
       const profile = await getUserProfile(authUser.uid);
-      console.log('useFirestoreUserProfile - Profile fetched:', profile);
+      console.log('useFirestoreUserProfile - Profile returned from getUserProfile:', profile ? 'SUCCESS' : 'NULL');
       return profile;
     },
     enabled: !!authUser && !authLoading,

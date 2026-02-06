@@ -5,9 +5,14 @@ import { useFirestoreUserProfile } from '@/hooks/useFirestoreUserProfile';
 interface AuthenticatedRouteGuardProps {
   children: ReactNode;
   onUnauthorized: () => void;
+  onUnapproved?: () => void;
 }
 
-export default function AuthenticatedRouteGuard({ children, onUnauthorized }: AuthenticatedRouteGuardProps) {
+export default function AuthenticatedRouteGuard({ 
+  children, 
+  onUnauthorized,
+  onUnapproved 
+}: AuthenticatedRouteGuardProps) {
   const { authUser, isLoading: authLoading } = useFirebaseAuthUser();
   const { data: userProfile, isLoading: profileLoading } = useFirestoreUserProfile();
 
@@ -16,6 +21,17 @@ export default function AuthenticatedRouteGuard({ children, onUnauthorized }: Au
       onUnauthorized();
     }
   }, [authUser, authLoading, onUnauthorized]);
+
+  // Check approval status after profile is loaded
+  useEffect(() => {
+    if (!authLoading && !profileLoading && authUser && userProfile) {
+      // If user is not approved and not an admin, redirect to pending approval
+      const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
+      if (!userProfile.approved && !isAdmin && onUnapproved) {
+        onUnapproved();
+      }
+    }
+  }, [authUser, authLoading, profileLoading, userProfile, onUnapproved]);
 
   if (authLoading || profileLoading) {
     return (

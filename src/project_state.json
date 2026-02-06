@@ -1,46 +1,34 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Live app (v23) has a blocking production issue: header and My Profile are not rendering user data due to a Firestore data-binding/data-source mismatch; must read strictly from Firestore users/{uid} and bind to existing field names without touching auth/signup/login/admin or changing UI layout.",
+  "summary": "App needs an in-app Super Admin dashboard for the first/initial user (super admin) to review new user signup details and approve/reject accounts; new signups should show a pending approval message until approved.",
   "architectural_notes": [
-    "User profile display must read user data ONLY from Firestore at users/{uid} (not Firebase Auth) for Header + My Profile.",
-    "Do NOT rename/mutate stored Firestore user document fields; UI bindings must match existing Firestore field names.",
-    "Scope constraint: do not touch signup page, login page, or admin dashboard; fix only Header avatar/name and My Profile (photo/name/email)."
+    "Treat the first registered account as Super Admin (or define a super-admin assignment rule) and gate admin dashboard access accordingly."
   ],
-  "known_issues": [
-    "Blocking (v23 prod): Profile photo, full name, email not rendering on My Profile; header avatar not rendering; header name changed incorrectly (likely data-source/binding mismatch)."
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-ensure-the-my-profile-screen-renders-the-logged-in-user-s-profile-photo-full-name-and-email-address-by-reading-only-from-firestore-document-path-users-auth-uid-and-binding-only-to-the-existing-firestore-field-names-photourl-name-and-email-no-reads-from-firebase-auth-user-fields-for-display",
-      "title": "Ensure the My Profile screen renders the logged-in user’s profile photo, full name, and email address by reading ONLY from Firestore document path `users/{auth.uid}` and binding ONLY to the existing Firestore field names `photoURL`, `name`, and `email` (no reads from Firebase Auth user fields for display).",
+      "id": "feature-ensure-the-first-registered-user-role-super-admin-can-access-an-in-app-super-admin-dashboard-from-the-profile-avatar-menu-without-relying-on-firebase-auth-displayname-photourl-use-firestore-users-uid-role-only",
+      "title": "Ensure the first registered user (role: \"super_admin\") can access an in-app Super Admin dashboard from the profile/avatar menu, without relying on Firebase Auth displayName/photoURL (use Firestore `users/{uid}.role` only).",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-on-the-my-profile-screen-implement-a-deterministic-avatar-fallback-based-strictly-on-firestore-if-users-uid-photourl-is-missing-empty-whitespace-do-not-render-an-image-url-and-instead-render-initials-derived-from-users-uid-name",
-      "title": "On the My Profile screen, implement a deterministic avatar fallback based strictly on Firestore: if `users/{uid}.photoURL` is missing/empty/whitespace, do not render an image URL and instead render initials derived from `users/{uid}.name`.",
+      "id": "feature-implement-confirm-an-admin-users-approval-screen-that-lets-super-admins-review-full-signup-details-for-each-pending-user-and-approve-reject-them-from-within-the-app",
+      "title": "Implement/confirm an Admin Users approval screen that lets super admins review full signup details for each pending user and approve/reject them from within the app.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-the-header-s-top-right-avatar-and-displayed-header-profile-menu-name-so-they-render-from-firestore-users-uid-only-use-photourl-for-the-avatar-image-when-present-otherwise-show-initials-derived-from-firestore-name-and-ensure-the-displayed-name-in-the-header-profile-menu-is-exactly-firestore-name-undo-any-incorrect-name-source-binding",
-      "title": "Fix the header’s top-right avatar and displayed header/profile-menu name so they render from Firestore `users/{uid}` only: use `photoURL` for the avatar image when present; otherwise show initials derived from Firestore `name`, and ensure the displayed name in the header/profile menu is exactly Firestore `name` (undo any incorrect name source/binding).",
+      "id": "feature-ensure-that-newly-signed-up-or-newly-logged-in-unapproved-users-see-an-in-app-pending-message-that-clearly-states-the-account-is-pending-admin-approval-use-english-user-facing-text",
+      "title": "Ensure that newly signed-up or newly logged-in unapproved users see an in-app pending message that clearly states the account is pending admin approval (use English user-facing text).",
       "reqIds": [
         "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-verify-the-firestore-read-is-performed-against-the-exact-document-path-users-auth-uid-with-an-awaited-fresh-server-read-no-cache-so-ui-reliably-updates-based-on-existing-firestore-data-add-keep-console-logs-sufficient-to-confirm-the-uid-used-and-that-the-read-is-not-from-cache",
-      "title": "Verify the Firestore read is performed against the exact document path `users/{auth.uid}` with an awaited fresh server read (no cache) so UI reliably updates based on existing Firestore data; add/keep console logs sufficient to confirm the UID used and that the read is not from cache.",
-      "reqIds": [
-        "REQ-4"
       ],
       "version": 1
     }
@@ -48,12 +36,24 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix production data-binding so Header (avatar/name) and My Profile (photo/full name/email) render correctly by reading ONLY from Firestore users/{uid} using existing field names; do not modify stored data or touch signup/login/admin.",
+      "summary": "Add Super Admin dashboard accessible from profile for the first user (super admin)",
       "reqIds": [],
-      "status": "in_progress"
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Implement user approval workflow: view new user signup details and approve/reject users from admin dashboard",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Show 'Pending approval for admin' message/status to newly signed-up users until approved",
+      "reqIds": [],
+      "status": "pending"
     }
   ],
-  "projectName": "Fix header + My Profile rendering by binding strictly to Firestore users/{uid} fields",
+  "projectName": "Add in-app Super Admin dashboard access and pending-user approval flow",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

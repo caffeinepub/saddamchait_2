@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useFirestorePendingUsersList } from '@/hooks/useFirestorePendingUsersList';
 import { useFirestoreUserProfile } from '@/hooks/useFirestoreUserProfile';
 import AdminLayout from './AdminLayout';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import UserRowActions from '@/components/admin/UserRowActions';
+import PendingUserDetailsDialog from '@/components/admin/PendingUserDetailsDialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface AdminUsersScreenProps {
@@ -15,16 +17,17 @@ interface AdminUsersScreenProps {
 export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) {
   const { data: users, isLoading, approveUser, rejectUser, blockUser, promoteToHelperAdmin, isUpdating } = useFirestorePendingUsersList();
   const { data: currentUserProfile } = useFirestoreUserProfile();
+  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   const isSuperAdmin = currentUserProfile?.role === 'super_admin';
   const isHelperAdmin = currentUserProfile?.role === 'helper_admin';
 
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(/\s+/);
+  const getInitials = (fullName: string) => {
+    const parts = fullName.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return fullName.slice(0, 2).toUpperCase();
   };
 
   return (
@@ -77,15 +80,15 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={user.photoURL} alt={user.name} />
-                                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                                <AvatarImage src={user.photoURL} alt={user.fullName} />
+                                <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{user.name}</span>
+                              <span className="font-medium">{user.fullName}</span>
                             </div>
                           </TableCell>
                           <TableCell>{user.age}</TableCell>
                           <TableCell className="capitalize">{user.relation}</TableCell>
-                          {isSuperAdmin && <TableCell className="text-muted-foreground">{user.phone}</TableCell>}
+                          {isSuperAdmin && <TableCell className="text-muted-foreground">{user.phoneNumber}</TableCell>}
                           {isSuperAdmin && <TableCell className="text-muted-foreground">{user.email}</TableCell>}
                           {isSuperAdmin && (
                             <TableCell>
@@ -101,7 +104,14 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
                           </TableCell>
                           <TableCell className="text-right">
                             <UserRowActions
-                              user={user}
+                              user={{
+                                uid: user.uid,
+                                fullName: user.fullName,
+                                role: user.role,
+                                approved: user.approved,
+                                rejected: user.rejected,
+                                blocked: user.blocked,
+                              }}
                               currentUserRole={currentUserProfile?.role || 'user'}
                               isSuperAdmin={isSuperAdmin}
                               isHelperAdmin={isHelperAdmin}
@@ -109,6 +119,7 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
                               onReject={() => rejectUser(user.uid)}
                               onBlock={() => blockUser(user.uid)}
                               onPromoteToHelperAdmin={() => promoteToHelperAdmin(user.uid)}
+                              onViewDetails={() => setSelectedUser(user)}
                               isUpdating={isUpdating}
                             />
                           </TableCell>
@@ -126,6 +137,14 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
           </Card>
         </div>
       </AdminLayout>
+
+      {selectedUser && (
+        <PendingUserDetailsDialog
+          open={!!selectedUser}
+          onOpenChange={(open) => !open && setSelectedUser(null)}
+          user={selectedUser}
+        />
+      )}
     </AdminRouteGuard>
   );
 }

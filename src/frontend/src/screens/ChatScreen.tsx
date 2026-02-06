@@ -65,12 +65,12 @@ export default function ChatScreen({ onNavigate }: ChatScreenProps) {
     });
   };
 
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(/\s+/);
+  const getInitials = (fullName: string) => {
+    const parts = fullName.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return fullName.slice(0, 2).toUpperCase();
   };
 
   const getOtherUserId = (chat: any) => {
@@ -226,7 +226,7 @@ function ChatListItem({
   chatId: string;
   otherUserId: string;
   onSelect: () => void;
-  getInitials: (name: string) => string;
+  getInitials: (fullName: string) => string;
 }) {
   const { data: otherUser } = useQuery({
     queryKey: ['userProfile', otherUserId],
@@ -243,11 +243,11 @@ function ChatListItem({
       className="w-full p-4 flex items-center gap-3 hover:bg-accent transition-colors text-left"
     >
       <Avatar className="h-12 w-12 shrink-0">
-        <AvatarImage src={otherUser.photoURL} alt={otherUser.name} />
-        <AvatarFallback>{getInitials(otherUser.name)}</AvatarFallback>
+        <AvatarImage src={otherUser.photoURL} alt={otherUser.fullName} />
+        <AvatarFallback>{getInitials(otherUser.fullName)}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{otherUser.name}</p>
+        <p className="font-medium truncate">{otherUser.fullName}</p>
         <p className="text-sm text-muted-foreground">Tap to open chat</p>
       </div>
     </button>
@@ -259,7 +259,7 @@ function ChatHeader({
   getInitials,
 }: {
   userId: string;
-  getInitials: (name: string) => string;
+  getInitials: (fullName: string) => string;
 }) {
   const { data: user } = useQuery({
     queryKey: ['userProfile', userId],
@@ -273,11 +273,11 @@ function ChatHeader({
   return (
     <div className="flex items-center gap-3">
       <Avatar className="h-10 w-10">
-        <AvatarImage src={user.photoURL} alt={user.name} />
-        <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+        <AvatarImage src={user.photoURL} alt={user.fullName} />
+        <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
       </Avatar>
       <div>
-        <p className="font-medium">{user.name}</p>
+        <p className="font-medium">{user.fullName}</p>
       </div>
     </div>
   );

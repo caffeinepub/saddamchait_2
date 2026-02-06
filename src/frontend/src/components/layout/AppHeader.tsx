@@ -9,26 +9,37 @@ interface AppHeaderProps {
 export default function AppHeader({ onNavigate }: AppHeaderProps) {
   const { data: userProfile, isLoading } = useFirestoreUserProfile();
 
-  console.log('AppHeader - userProfile:', userProfile, 'isLoading:', isLoading);
+  console.log('AppHeader - Rendering with userProfile:', userProfile, 'isLoading:', isLoading);
 
-  const getInitials = (name: string) => {
-    if (!name || name.trim().length === 0) return '??';
-    const parts = name.trim().split(/\s+/);
+  const getInitials = (fullName: string) => {
+    if (!fullName || fullName.trim().length === 0) return '??';
+    const parts = fullName.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return fullName.slice(0, 2).toUpperCase();
   };
 
+  // Read ONLY from Firestore userProfile (NOT Firebase Auth)
   const photoURL = userProfile?.photoURL?.trim() || '';
   const hasPhoto = photoURL.length > 0;
-  const displayName = userProfile?.name || 'User';
+  const displayName = userProfile?.fullName || 'User';
 
-  console.log('AppHeader - Rendering with:', {
-    hasPhoto,
-    photoURL,
-    displayName
+  console.log('AppHeader - Display bindings:', {
+    displayName: displayName,
+    hasPhoto: hasPhoto,
+    photoURL: hasPhoto ? photoURL.substring(0, 50) + '...' : '(empty)',
+    source: 'Firestore users/{uid}'
   });
+
+  const isSuperAdmin = userProfile?.role === 'super_admin';
+
+  const handleAvatarClick = () => {
+    if (isSuperAdmin) {
+      console.log('AppHeader - Super Admin avatar clicked, navigating to /admin/users');
+      onNavigate('/admin/users');
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -44,7 +55,10 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
 
         {!isLoading && userProfile && (
           <ProfileMenu userProfile={userProfile} onNavigate={onNavigate}>
-            <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <button 
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              onClick={handleAvatarClick}
+            >
               <Avatar className="h-8 w-8">
                 {hasPhoto && <AvatarImage src={photoURL} alt={displayName} />}
                 <AvatarFallback>{getInitials(displayName)}</AvatarFallback>

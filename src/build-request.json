@@ -1,95 +1,87 @@
 {
   "kind": "build_request",
-  "title": "Fix header + My Profile rendering by binding strictly to Firestore users/{uid} fields",
-  "priority": "high",
+  "title": "Add in-app Super Admin dashboard access and pending-user approval flow",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Ensure the My Profile screen renders the logged-in user’s profile photo, full name, and email address by reading ONLY from Firestore document path `users/{auth.uid}` and binding ONLY to the existing Firestore field names `photoURL`, `name`, and `email` (no reads from Firebase Auth user fields for display).",
+      "text": "Ensure the first registered user (role: \"super_admin\") can access an in-app Super Admin dashboard from the profile/avatar menu, without relying on Firebase Auth displayName/photoURL (use Firestore `users/{uid}.role` only).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-user-1"
         ],
         "quotes": [
-          "- Read user data ONLY from Firestore: users/{uid}\n- Do NOT rename or mutate stored data\n- Bind UI strictly to existing Firestore field names\n...Fix ONLY:\n  • ... My Profile page (photo, name, email)"
+          "I am the first user so I am super admin ... I need super admin dashboard ... inside this app when I click on my profile I want the super admin dashboard"
         ]
       },
       "acceptanceCriteria": [
-        "When an authenticated user navigates to `/profile`, the UI displays `users/{uid}.name` and `users/{uid}.email` values from Firestore.",
-        "When `users/{uid}.photoURL` is a non-empty string, the profile avatar image uses that URL (no Firebase Auth `photoURL` is used).",
-        "No Firestore writes occur as part of rendering My Profile (no mutation/rename/backfill of stored data)."
+        "When the logged-in Firestore profile has `role === \"super_admin\"`, the profile/avatar dropdown shows an explicit navigation item (e.g., \"Admin Dashboard\" or \"User Approval\") that routes to the admin area.",
+        "When the logged-in Firestore profile has `role === \"user\"`, no admin navigation item is shown.",
+        "Admin visibility logic uses only Firestore profile data (not Firebase Auth fields)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "On the My Profile screen, implement a deterministic avatar fallback based strictly on Firestore: if `users/{uid}.photoURL` is missing/empty/whitespace, do not render an image URL and instead render initials derived from `users/{uid}.name`.",
+      "text": "Implement/confirm an Admin Users approval screen that lets super admins review full signup details for each pending user and approve/reject them from within the app.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-user-1"
         ],
         "quotes": [
-          "Expected Result:\n... My Profile → shows actual saved full name, email, and photo\n\n- Header → shows correct profile photo or initials"
+          "So that I can see the complete signup details of the user, and only after seeing these details I will approve the user"
         ]
       },
       "acceptanceCriteria": [
-        "If `photoURL` is empty or whitespace, the AvatarImage is not attempted/used and the AvatarFallback shows initials derived from the Firestore `name`.",
-        "If Firestore `name` is present, initials are stable and derived from that value (not from Firebase Auth)."
+        "The admin screen lists pending users (Firestore `approved == false`) and shows their signup fields (at minimum: fullName, age, relation, phoneNumber, email, photoURL) in the UI for super admins.",
+        "Each pending user row has actions to approve and reject; approving sets `approved=true` (and clears `rejected`), rejecting sets `rejected=true` and keeps `approved=false`.",
+        "After performing an action, the pending list refreshes and the updated user no longer appears as pending when approved."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Fix the header’s top-right avatar and displayed header/profile-menu name so they render from Firestore `users/{uid}` only: use `photoURL` for the avatar image when present; otherwise show initials derived from Firestore `name`, and ensure the displayed name in the header/profile menu is exactly Firestore `name` (undo any incorrect name source/binding).",
+      "text": "Ensure that newly signed-up or newly logged-in unapproved users see an in-app pending message that clearly states the account is pending admin approval (use English user-facing text).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-user-1"
         ],
         "quotes": [
-          "• Header avatar is NOT rendering\n• Header name was changed incorrectly without instruction\n...\nFix ONLY:\n  • Header avatar\n  • Header name"
+          "When a new user signs up, they should get a message 'pending approval for admin'"
         ]
       },
       "acceptanceCriteria": [
-        "When a user is logged in and `users/{uid}` exists, the header avatar uses Firestore `photoURL` if non-empty; otherwise shows initials derived from Firestore `name`.",
-        "The header/profile dropdown displays the user’s name from Firestore `users/{uid}.name` (no Firebase Auth display name/email is used for display).",
-        "No changes are made to routes/pages outside the header components and My Profile screen."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Verify the Firestore read is performed against the exact document path `users/{auth.uid}` with an awaited fresh server read (no cache) so UI reliably updates based on existing Firestore data; add/keep console logs sufficient to confirm the UID used and that the read is not from cache.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Most likely causes:\n...\n3) Incorrect users/{uid} document path or missing await/subscribe"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Browser console shows a log indicating a Firestore fetch for the current auth UID (e.g., includes the UID used).",
-        "The profile fetch uses a fresh server read (not a cached-only read), and logs demonstrate the read is not from cache.",
-        "Header and My Profile update to show Firestore-backed values after the profile query resolves (no permanent blank state when data exists)."
+        "If a user’s Firestore profile has `approved === false`, the app routes them to the pending approval screen instead of main app screens.",
+        "The pending approval screen includes the exact phrase \"Pending approval for admin\" somewhere in the visible text (English).",
+        "Approved users do not see the pending approval screen on login."
       ]
     }
   ],
   "constraints": [
-    "Do not rename, migrate, or mutate any stored Firestore user data.",
-    "Read user profile display fields ONLY from Firestore `users/{uid}` (fields `name`, `email`, `photoURL`); do not display profile fields from Firebase Auth.",
-    "Do not touch Signup page (`frontend/src/screens/SignupScreen.tsx`).",
-    "Do not touch Login page (`frontend/src/screens/LoginScreen.tsx`).",
-    "Do not touch any Admin dashboard/admin screens.",
-    "UI layout/design is acceptable; do not redesign or refactor unrelated UI."
+    "Use English for any user-facing text.",
+    "Do not change files under `frontend/src/components/ui` or other immutable paths listed in SYSTEM_CONTEXT.",
+    "Keep existing role strings unchanged (e.g., \"super_admin\", \"helper_admin\", \"user\").",
+    "Keep Firestore as the source of truth for roles/approval (do not switch to Firebase Auth fields).",
+    "Backend remains single-actor Motoko; do not introduce additional backend services."
   ],
   "nonGoals": [
-    "Adding new profile fields or editing profile data.",
-    "Changing approval/role logic, routing, or guards beyond what is strictly required to render the header/profile data.",
-    "Introducing new pages, features, or refactors unrelated to header + My Profile rendering."
+    "Do not implement real email notifications (no email service integration).",
+    "Do not add third-party authentication providers beyond the existing setup.",
+    "Do not add external databases or move approval data out of Firestore."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

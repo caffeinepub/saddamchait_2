@@ -1,83 +1,78 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Bind header + My Profile display strictly to Firestore users/{uid} (name/email/photoURL) with server-fresh reads",
+  "title": "Super Admin in-app dashboard access + pending-user approval gating (Firestore roles/approval)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Render My Profile photo, full name, and email by reading only Firestore users/{auth.uid} fields photoURL/name/email (no Firebase Auth display binding) and avoid any Firestore writes during render.",
+      "summary": "Show a Super Admin-only navigation entry in the profile/avatar dropdown that routes to the admin area using Firestore `users/{uid}.role` only.",
       "acceptanceCriteria": [
-        "When an authenticated user navigates to `/profile`, the UI displays `users/{uid}.name` and `users/{uid}.email` values from Firestore.",
-        "When `users/{uid}.photoURL` is a non-empty string, the profile avatar image uses that URL (no Firebase Auth `photoURL` is used).",
-        "No Firestore writes occur as part of rendering My Profile (no mutation/rename/backfill of stored data)."
+        "When the logged-in Firestore profile has `role === \"super_admin\"`, the profile/avatar dropdown shows an explicit navigation item (e.g., \"Admin Dashboard\" or \"User Approval\") that routes to the admin area.",
+        "When the logged-in Firestore profile has `role === \"user\"`, no admin navigation item is shown.",
+        "Admin visibility logic uses only Firestore profile data (not Firebase Auth fields)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/screens/ProfileScreen.tsx",
+          "path": "frontend/src/components/layout/ProfileMenu.tsx",
           "operation": "modify",
-          "description": "Ensure all displayed profile fields (avatar image, full name, email) bind strictly to the Firestore-backed `userProfile.photoURL`, `userProfile.name`, and `userProfile.email` values returned from `useFirestoreUserProfile`, with no fallback to Firebase Auth user fields. Use existing shadcn-ui components (Avatar/Card/Badge/Separator) for rendering; verify the component's usage instructions before implementing."
+          "description": "Adjust the admin menu item visibility logic to be strictly `role === \"super_admin\"` (not helper_admin) and ensure the label remains English. Keep using only the Firestore-provided `userProfile` prop for role/name/photo decisions (no Firebase Auth displayName/photoURL). Use existing shadcn-ui DropdownMenu primitives already in this file. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/hooks/useFirestoreUserProfile.ts",
+          "path": "frontend/src/components/layout/AppHeader.tsx",
           "operation": "modify",
-          "description": "Confirm the profile query reads only by `authUser.uid` (Firestore doc users/{uid}) and returns the Firestore document data for display (no Firebase Auth field mapping). Keep the hook read-only (no create/update/backfill behavior)."
+          "description": "Ensure any admin-related navigation triggered from the avatar/profile entry point remains consistent with Super Admin-only access (avoid helper_admin being treated as 'admin dashboard access' for this requirement) and continues binding user display fields from Firestore profile data only. Use existing shadcn-ui Avatar primitives already in this file. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Implement deterministic avatar fallback on My Profile derived from Firestore name when Firestore photoURL is missing/empty/whitespace (do not attempt an image URL in that case).",
+      "summary": "Provide an in-app Super Admin pending-users screen that shows full signup details for each pending user and supports approve/reject actions with refresh.",
       "acceptanceCriteria": [
-        "If `photoURL` is empty or whitespace, the AvatarImage is not attempted/used and the AvatarFallback shows initials derived from the Firestore `name`.",
-        "If Firestore `name` is present, initials are stable and derived from that value (not from Firebase Auth)."
+        "The admin screen lists pending users (Firestore `approved == false`) and shows their signup fields (at minimum: fullName, age, relation, phoneNumber, email, photoURL) in the UI for super admins.",
+        "Each pending user row has actions to approve and reject; approving sets `approved=true` (and clears `rejected`), rejecting sets `rejected=true` and keeps `approved=false`.",
+        "After performing an action, the pending list refreshes and the updated user no longer appears as pending when approved."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/screens/ProfileScreen.tsx",
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
           "operation": "modify",
-          "description": "Adjust avatar rendering so `AvatarImage` is only rendered when Firestore `photoURL` is non-empty after trimming, otherwise render initials computed from Firestore `name` in `AvatarFallback`. Use the shadcn-ui Avatar component to provide the image/fallback behavior; verify the component's usage instructions before implementing."
+          "description": "Enhance the pending users list UI so Super Admins can review complete signup details per user (including photoURL, email, phoneNumber, age, relation, fullName) without relying on truncated table columns; wire in a details view (e.g., per-row dialog) while keeping the existing pending-users query and approve/reject actions. Use existing shadcn-ui Card/Table/Badge/Avatar primitives already in this screen. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/admin/UserRowActions.tsx",
+          "operation": "modify",
+          "description": "Ensure the approve/reject actions remain clearly available for pending users and stay English-only, and (if needed for the details review UX) add a secondary action to open the pending-user details view without changing any files under `frontend/src/components/ui`. Continue to rely on parent-provided callbacks that update Firestore and refresh queries. Use existing shadcn-ui DropdownMenu/AlertDialog primitives already in this component. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/admin/PendingUserDetailsDialog.tsx",
+          "operation": "create",
+          "description": "Create a reusable admin-only dialog component to display the full pending user's signup fields (fullName, age, relation, phoneNumber, email, photoURL) in a readable layout for Super Admin review. Use shadcn-ui dialog primitives (from existing project components) for consistent UI. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Fix header avatar + header/profile-menu name to render strictly from Firestore users/{uid}: use Firestore photoURL when present, otherwise initials from Firestore name, and display name exactly from Firestore name.",
+      "summary": "Gate unapproved users into an in-app pending approval screen and display the exact message text \"Pending approval for admin\".",
       "acceptanceCriteria": [
-        "When a user is logged in and `users/{uid}` exists, the header avatar uses Firestore `photoURL` if non-empty; otherwise shows initials derived from Firestore `name`.",
-        "The header/profile dropdown displays the user’s name from Firestore `users/{uid}.name` (no Firebase Auth display name/email is used for display).",
-        "No changes are made to routes/pages outside the header components and My Profile screen."
+        "If a user’s Firestore profile has `approved === false`, the app routes them to the pending approval screen instead of main app screens.",
+        "The pending approval screen includes the exact phrase \"Pending approval for admin\" somewhere in the visible text (English).",
+        "Approved users do not see the pending approval screen on login."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/layout/AppHeader.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Ensure the header avatar uses only Firestore-backed `userProfile.photoURL` and `userProfile.name` from `useFirestoreUserProfile`, with conditional rendering to avoid attempting `AvatarImage` when `photoURL` is empty/whitespace, and initials derived from Firestore `name`. Use the shadcn-ui Avatar component for avatar UI; verify the component's usage instructions before implementing."
+          "description": "Add centralized approval gating: when an authenticated Firestore profile is loaded and `approved === false`, force navigation/rendering to `/pending-approval` for non-auth routes (e.g., /chat, /users, /profile, and admin routes), while allowing approved users to proceed normally. Keep routing logic English-only and continue using Firestore profile as the source of truth."
         },
         {
-          "path": "frontend/src/components/layout/ProfileMenu.tsx",
+          "path": "frontend/src/screens/PendingApprovalScreen.tsx",
           "operation": "modify",
-          "description": "Ensure the displayed name in the dropdown label is exactly the Firestore-backed `userProfile.name` passed from the header/profile hook and that no Firebase Auth user fields are used for display. Use existing shadcn-ui DropdownMenu components for the menu UI; verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Verify profile reads target exact Firestore path users/{auth.uid} with awaited fresh server reads (no cache) and add/keep console logs confirming UID and non-cached read behavior for header + profile display.",
-      "acceptanceCriteria": [
-        "Browser console shows a log indicating a Firestore fetch for the current auth UID (e.g., includes the UID used).",
-        "The profile fetch uses a fresh server read (not a cached-only read), and logs demonstrate the read is not from cache.",
-        "Header and My Profile update to show Firestore-backed values after the profile query resolves (no permanent blank state when data exists)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useFirestoreUserProfile.ts",
-          "operation": "modify",
-          "description": "Add/keep console logging in the query function to print the current `authUser.uid` used for the Firestore read, and confirm the fetch is awaited before resolving data to UI. Ensure the hook continues to rely on the existing Firestore server-fresh read behavior (no cache-only reads) provided by the Firebase helper."
+          "description": "Update the pending approval UI copy to include the exact visible phrase \"Pending approval for admin\" (English) while keeping the existing layout components. Use existing shadcn-ui Card/Alert/Button primitives already imported here. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/lib/firebase.ts",
+          "path": "frontend/src/components/auth/AuthenticatedRouteGuard.tsx",
           "operation": "modify",
-          "description": "Retain and, if needed, clarify console logs in the Firestore profile read helper to show the UID, that a server-fresh read is used, and the returned snapshot metadata indicating whether data came from cache. Ensure the read continues to target `users/{uid}` and uses an awaited server read."
+          "description": "Add an approval-aware check so that authenticated-but-unapproved users are not allowed to render protected main-app content; instead trigger a redirect/navigation callback to the pending approval screen (or integrate with the App-level gating if that is the chosen single source of truth). Continue to rely on Firestore profile data via `useFirestoreUserProfile` and keep all user-facing text English."
         }
       ]
     }

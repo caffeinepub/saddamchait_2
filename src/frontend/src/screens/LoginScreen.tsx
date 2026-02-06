@@ -8,6 +8,7 @@ import AuthLayout from '@/components/auth/AuthLayout';
 import { signInWithEmail, getUserProfile } from '@/lib/firebase';
 import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
 import { getPostLoginRoute } from '@/lib/postLoginRedirect';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface LoginScreenProps {
   onNavigateToSignup: () => void;
@@ -20,6 +21,7 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onL
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +43,10 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onL
           setIsLoggingIn(false);
           return;
         }
+
+        // Pre-populate React Query cache with the fetched profile
+        queryClient.setQueryData(['userProfile', result.uid], profile);
+        console.log('LoginScreen - Profile cached in React Query for uid:', result.uid);
 
         // Check if user is blocked
         if (profile.blocked) {
