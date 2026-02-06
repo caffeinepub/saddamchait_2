@@ -1,59 +1,26 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App needs an in-app Super Admin dashboard for the first/initial user (super admin) to review new user signup details and approve/reject accounts; new signups should show a pending approval message until approved.",
+  "summary": "Firebase Auth signup succeeds but Firestore profile document creation is blocked by security rules; project needs a production-critical rules fix to allow authenticated users to create their own profile document (uid matches userId).",
   "architectural_notes": [
-    "Treat the first registered account as Super Admin (or define a super-admin assignment rule) and gate admin dashboard access accordingly."
+    "HOT-LOCKED: Do not change signup flow logic or admin/helper logic; only adjust Firestore security rules to permit authenticated users to create their own profile document where request.auth.uid == userId."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Signup fails at Firestore profile write step with “Missing or insufficient permissions” because Firestore rules do not allow new authenticated users to create their own profile document; profile photo/name/phone/email not saved."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-the-first-registered-user-role-super-admin-can-access-an-in-app-super-admin-dashboard-from-the-profile-avatar-menu-without-relying-on-firebase-auth-displayname-photourl-use-firestore-users-uid-role-only",
-      "title": "Ensure the first registered user (role: \"super_admin\") can access an in-app Super Admin dashboard from the profile/avatar menu, without relying on Firebase Auth displayName/photoURL (use Firestore `users/{uid}.role` only).",
+      "id": "feature-update-firestore-security-rules-to-allow-a-newly-authenticated-user-to-create-their-own-profile-document-during-signup-by-permitting-writes-when-request-auth-null-and-request-auth-uid-userid-for-the-profile-document-path-used-by-the-app-users-userid-do-not-change-any-signup-flow-logic-admin-helper-logic-or-add-new-features",
+      "title": "Update Firestore security rules to allow a newly authenticated user to CREATE their own profile document during signup by permitting writes when `request.auth != null` and `request.auth.uid == userId` for the profile document path used by the app (`users/{userId}`). Do not change any signup flow logic, admin/helper logic, or add new features.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-implement-confirm-an-admin-users-approval-screen-that-lets-super-admins-review-full-signup-details-for-each-pending-user-and-approve-reject-them-from-within-the-app",
-      "title": "Implement/confirm an Admin Users approval screen that lets super admins review full signup details for each pending user and approve/reject them from within the app.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-that-newly-signed-up-or-newly-logged-in-unapproved-users-see-an-in-app-pending-message-that-clearly-states-the-account-is-pending-admin-approval-use-english-user-facing-text",
-      "title": "Ensure that newly signed-up or newly logged-in unapproved users see an in-app pending message that clearly states the account is pending admin approval (use English user-facing text).",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Add Super Admin dashboard accessible from profile for the first user (super admin)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Implement user approval workflow: view new user signup details and approve/reject users from admin dashboard",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Show 'Pending approval for admin' message/status to newly signed-up users until approved",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
-  "projectName": "Add in-app Super Admin dashboard access and pending-user approval flow",
+  "new_feature_requests": [],
+  "projectName": "Fix Firestore security rules to allow authenticated users to create their own profile document",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

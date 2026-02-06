@@ -6,26 +6,24 @@ interface UserProfile {
 }
 
 /**
- * Determines the post-login redirect route based on user profile and role.
+ * Determines the post-login redirect route based on user profile.
+ * This helper is NO LONGER used by LoginScreen.
+ * LoginScreen always redirects to /chat after successful login.
+ * 
+ * This function is kept for potential future use in other contexts.
  * Priority order:
  * 1. blocked user → handled in LoginScreen (no redirect)
  * 2. rejected user → handled in LoginScreen (no redirect)
  * 3. unapproved user → /pending-approval
- * 4. super_admin/helper_admin (approved) → /admin/users
- * 5. user (approved) → /chat
+ * 4. approved user → /chat
  */
-export function getPostLoginRoute(profile: UserProfile): '/chat' | '/pending-approval' | '/admin/users' {
+export function getPostLoginRoute(profile: UserProfile): '/chat' | '/pending-approval' {
   // Blocked and rejected users are handled in LoginScreen before calling this
-  // Unapproved users always go to pending approval
+  // Unapproved users go to pending approval
   if (!profile.approved) {
     return '/pending-approval';
   }
 
-  // Admins go to admin dashboard
-  if (profile.role === 'super_admin' || profile.role === 'helper_admin') {
-    return '/admin/users';
-  }
-
-  // Regular users go to chat
+  // All approved users go to chat (no role-based routing)
   return '/chat';
 }

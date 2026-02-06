@@ -1,6 +1,8 @@
 // Firebase types and wrapper for CDN-loaded Firebase
 // The actual Firebase SDK is loaded via CDN in index.html
 
+import { normalizeRole, isSuperAdminRole } from './roles';
+
 interface FirebaseApp {
   name: string;
   options: any;
@@ -143,6 +145,32 @@ export async function createUserProfile(
   console.log('createUserProfile - Profile created successfully for uid:', uid);
 }
 
+// Helper: Migrate legacy admin role to super_admin
+async function migrateLegacyAdminRole(uid: string, currentRole: string): Promise<void> {
+  if (currentRole !== 'admin') return;
+  
+  try {
+    await waitForFirebase();
+    const db = getDb();
+    const modules = await loadFirebaseModules();
+    const { doc, updateDoc } = modules.firestore;
+    
+    console.log('=== MIGRATING LEGACY ADMIN ROLE ===');
+    console.log('Detected legacy "admin" role for uid:', uid);
+    console.log('Updating to "super_admin" with approved=true');
+    
+    const userDocRef = doc(db, 'users', uid);
+    await updateDoc(userDocRef, {
+      role: 'super_admin',
+      approved: true,
+    });
+    
+    console.log('Migration complete - user is now super_admin with approved=true');
+  } catch (error) {
+    console.error('Failed to migrate legacy admin role:', error);
+  }
+}
+
 // Helper: Get user profile from Firestore with FRESH server read (no cache)
 export async function getUserProfile(uid: string): Promise<{ fullName: string; age: number; relation: string; phoneNumber: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean } | null> {
   try {
@@ -181,13 +209,26 @@ export async function getUserProfile(uid: string): Promise<{ fullName: string; a
       console.log('data.email =', data.email);
       console.log('data.photoURL =', data.photoURL ? data.photoURL.substring(0, 100) + '...' : '(empty or undefined)');
       console.log('data.phoneNumber =', data.phoneNumber);
+      console.log('data.role (raw) =', data.role);
       console.log('=== END FIRESTORE FIELD INSPECTION ===');
       
+      // Migrate legacy admin role if detected
+      const rawRole = data.role ?? 'user';
+      if (rawRole === 'admin') {
+        console.log('⚠️ Legacy "admin" role detected - triggering migration');
+        await migrateLegacyAdminRole(uid, rawRole);
+      }
+      
+      // Normalize role for consistent handling
+      const normalizedRole = normalizeRole(rawRole);
+      console.log('Role normalization:', rawRole, '->', normalizedRole);
+      
       // Explicitly check approved field - must be exactly true (boolean)
-      const approved = data.approved === true;
+      // For admins, ensure they are always approved
+      const isAdmin = normalizedRole === 'super_admin' || normalizedRole === 'helper_admin';
+      const approved = isAdmin ? true : (data.approved === true);
       const rejected = data.rejected === true;
       const blocked = data.blocked === true;
-      const role = data.role ?? 'user';
       const fullName = data.fullName ?? '';
       const age = data.age ?? 0;
       const relation = data.relation ?? '';
@@ -204,7 +245,7 @@ export async function getUserProfile(uid: string): Promise<{ fullName: string; a
         approved,
         rejected,
         blocked,
-        role,
+        role: normalizedRole,
         fromCache: userDoc.metadata.fromCache
       });
       
@@ -218,7 +259,7 @@ export async function getUserProfile(uid: string): Promise<{ fullName: string; a
         approved,
         rejected,
         blocked,
-        role,
+        role: normalizedRole,
       };
     }
     
@@ -245,6 +286,9 @@ export async function getAllUsers(): Promise<Array<{ uid: string; fullName: stri
     const users: Array<{ uid: string; fullName: string; age: number; relation: string; phoneNumber: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
+      const rawRole = data.role ?? 'user';
+      const normalizedRole = normalizeRole(rawRole);
+      
       users.push({
         uid: doc.id,
         fullName: data.fullName ?? '',
@@ -253,7 +297,7 @@ export async function getAllUsers(): Promise<Array<{ uid: string; fullName: stri
         phoneNumber: data.phoneNumber ?? '',
         email: data.email ?? '',
         photoURL: data.photoURL ?? '',
-        role: data.role ?? 'user',
+        role: normalizedRole,
         approved: data.approved === true,
         rejected: data.rejected === true,
         blocked: data.blocked === true,
@@ -284,6 +328,9 @@ export async function getPendingUsers(): Promise<Array<{ uid: string; fullName: 
     const users: Array<{ uid: string; fullName: string; age: number; relation: string; phoneNumber: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
+      const rawRole = data.role ?? 'user';
+      const normalizedRole = normalizeRole(rawRole);
+      
       users.push({
         uid: doc.id,
         fullName: data.fullName ?? '',
@@ -292,7 +339,7 @@ export async function getPendingUsers(): Promise<Array<{ uid: string; fullName: 
         phoneNumber: data.phoneNumber ?? '',
         email: data.email ?? '',
         photoURL: data.photoURL ?? '',
-        role: data.role ?? 'user',
+        role: normalizedRole,
         approved: false,
         rejected: data.rejected === true,
         blocked: data.blocked === true,
@@ -323,12 +370,15 @@ export async function getApprovedUsers(currentUid: string): Promise<Array<{ uid:
     const users: Array<{ uid: string; fullName: string; email: string; photoURL: string; role: string; approved: boolean }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
+      const rawRole = data.role ?? 'user';
+      const normalizedRole = normalizeRole(rawRole);
+      
       users.push({
         uid: doc.id,
         fullName: data.fullName ?? '',
         email: data.email ?? '',
         photoURL: data.photoURL ?? '',
-        role: data.role ?? 'user',
+        role: normalizedRole,
         approved: true,
       });
     });
@@ -550,16 +600,14 @@ export async function respondToChatRequest(requestId: string, accept: boolean): 
       console.log('respondToChatRequest - Chat created between', requestData.fromUserId, 'and', requestData.toUserId);
     }
   } else {
-    // Update request status to rejected
+    // Reject request
     await updateDoc(requestRef, { status: 'rejected' });
   }
   
   console.log('respondToChatRequest - Request', accept ? 'accepted' : 'rejected');
 }
 
-// Chat Functions
-
-export async function getUserChats(userId: string): Promise<Array<{ id: string; members: string[]; createdAt: any }>> {
+export async function getAcceptedChats(userId: string): Promise<Array<{ chatId: string; otherUserId: string }>> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -571,162 +619,47 @@ export async function getUserChats(userId: string): Promise<Array<{ id: string; 
     const q = query(chatsRef, where('members', 'array-contains', userId));
     const snapshot = await getDocs(q);
     
-    const chats: Array<{ id: string; members: string[]; createdAt: any }> = [];
+    const chats: Array<{ chatId: string; otherUserId: string }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-      chats.push({
-        id: doc.id,
-        members: data.members,
-        createdAt: data.createdAt,
-      });
+      const members = data.members as string[];
+      const otherUserId = members.find((id) => id !== userId);
+      if (otherUserId) {
+        chats.push({
+          chatId: doc.id,
+          otherUserId,
+        });
+      }
     });
     
     return chats;
   } catch (error) {
-    console.error('getUserChats - Error:', error);
+    console.error('getAcceptedChats - Error:', error);
     return [];
   }
 }
 
-export async function getChatMessages(chatId: string): Promise<Array<{ id: string; senderId: string; text: string; createdAt: any }>> {
-  try {
-    await waitForFirebase();
-    const db = getDb();
-    
-    const modules = await loadFirebaseModules();
-    const { collection, query, orderBy, getDocs } = modules.firestore;
-    
-    const messagesRef = collection(db, 'chats', chatId, 'messages');
-    const q = query(messagesRef, orderBy('createdAt', 'asc'));
-    const snapshot = await getDocs(q);
-    
-    const messages: Array<{ id: string; senderId: string; text: string; createdAt: any }> = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      messages.push({
-        id: doc.id,
-        senderId: data.senderId,
-        text: data.text,
-        createdAt: data.createdAt,
-      });
-    });
-    
-    return messages;
-  } catch (error) {
-    console.error('getChatMessages - Error:', error);
-    return [];
-  }
-}
-
-export async function sendMessage(chatId: string, senderId: string, text: string): Promise<void> {
+// Auth functions
+export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
   await waitForFirebase();
-  const db = getDb();
+  const auth = getAuth();
   
   const modules = await loadFirebaseModules();
-  const { collection, addDoc, serverTimestamp } = modules.firestore;
+  const { signInWithEmailAndPassword } = modules.auth;
   
-  const messagesRef = collection(db, 'chats', chatId, 'messages');
-  await addDoc(messagesRef, {
-    senderId,
-    text,
-    createdAt: serverTimestamp(),
-  });
+  return signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function signUpWithEmail(email: string, password: string): Promise<UserCredential> {
+  await waitForFirebase();
+  const auth = getAuth();
   
-  console.log('sendMessage - Message sent to chat', chatId);
+  const modules = await loadFirebaseModules();
+  const { createUserWithEmailAndPassword } = modules.auth;
+  
+  return createUserWithEmailAndPassword(auth, email, password);
 }
 
-// Helper: Sign up with email and password
-export async function signUpWithEmail(
-  email: string,
-  password: string,
-  profileData: {
-    fullName: string;
-    age: number;
-    relation: string;
-    phoneNumber: string;
-    photoURL: string;
-  }
-): Promise<{ success: boolean; error?: string; isProfileError?: boolean; isFirstUser?: boolean }> {
-  try {
-    await waitForFirebase();
-    const auth = getAuth();
-    
-    const modules = await loadFirebaseModules();
-    const { createUserWithEmailAndPassword, signOut } = modules.auth;
-    
-    // Check if this is the first user BEFORE creating auth account
-    const firstUser = await isFirstUser();
-    console.log('signUpWithEmail - Is first user:', firstUser);
-    
-    // Step 1: Create Firebase Auth user
-    let userCredential: UserCredential;
-    try {
-      userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    } catch (authError: any) {
-      console.error('signUpWithEmail - Auth error:', authError);
-      return { success: false, error: authError.code || 'unknown' };
-    }
-
-    const user = userCredential.user;
-    console.log('signUpWithEmail - Auth user created with uid:', user.uid);
-
-    // Step 2: Create Firestore profile using the authenticated user's UID
-    try {
-      await createUserProfile({ ...profileData, email });
-      console.log('signUpWithEmail - Firestore profile created successfully');
-    } catch (profileError: any) {
-      console.error('signUpWithEmail - Firestore profile creation failed:', profileError);
-      // Sign out the user since profile creation failed
-      await signOut(auth);
-      return { 
-        success: false, 
-        error: 'profile-creation-failed',
-        isProfileError: true 
-      };
-    }
-
-    // Step 3: If first user, keep them logged in; otherwise sign out
-    if (firstUser) {
-      console.log('signUpWithEmail - First user, keeping logged in');
-      return { success: true, isFirstUser: true };
-    } else {
-      await signOut(auth);
-      console.log('signUpWithEmail - Not first user, signed out after successful signup');
-      return { success: true, isFirstUser: false };
-    }
-  } catch (error: any) {
-    console.error('signUpWithEmail - Unexpected error:', error);
-    return { success: false, error: error.code || 'unknown' };
-  }
-}
-
-// Helper: Sign in with email and password
-export async function signInWithEmail(
-  email: string,
-  password: string
-): Promise<{ success: boolean; error?: string; needsApproval?: boolean; uid?: string }> {
-  try {
-    await waitForFirebase();
-    const auth = getAuth();
-    
-    const modules = await loadFirebaseModules();
-    const { signInWithEmailAndPassword } = modules.auth;
-    
-    console.log('signInWithEmail - Attempting authentication for:', email);
-    const userCredential: UserCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    console.log('signInWithEmail - Authenticated user uid:', user.uid);
-
-    // Return success with uid - let the UI handle profile fetching and routing
-    return { success: true, uid: user.uid };
-  } catch (error: any) {
-    console.error('signInWithEmail - Error:', error);
-    return { success: false, error: error.code || 'unknown' };
-  }
-}
-
-// Helper: Sign out
 export async function signOutUser(): Promise<void> {
   await waitForFirebase();
   const auth = getAuth();
@@ -734,5 +667,11 @@ export async function signOutUser(): Promise<void> {
   const modules = await loadFirebaseModules();
   const { signOut } = modules.auth;
   
-  await signOut(auth);
+  return signOut(auth);
+}
+
+export async function getCurrentUser(): Promise<FirebaseUser | null> {
+  await waitForFirebase();
+  const auth = getAuth();
+  return auth.currentUser;
 }

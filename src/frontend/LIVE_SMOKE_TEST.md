@@ -1,149 +1,238 @@
 # Live Smoke Test Checklist
 
-## Pre-Deployment Verification
-- [ ] Firebase project configured with Authentication and Firestore enabled
-- [ ] Firestore security rules deployed (see firestore.rules)
-- [ ] Environment variables set correctly in frontend/index.html
+This document provides a comprehensive checklist to verify the Saddam Chat application is working correctly after deployment.
 
-## Test 1: First User Signup (Super Admin Auto-Approval)
-1. [ ] Navigate to signup page
-2. [ ] Fill in name, email, password
-3. [ ] Capture profile photo
-4. [ ] Submit signup form
-5. [ ] Verify success message appears
-6. [ ] Check Firestore console:
-   - [ ] Document exists at `users/{uid}`
-   - [ ] Fields: `name`, `email`, `role: "super_admin"`, `approved: true`, `profilePhotoUrl`
-   - [ ] `profilePhotoUrl` is a valid Firebase Storage URL
-7. [ ] Verify user is signed out after signup
-8. [ ] Login with the same credentials
-9. [ ] **Verify redirect to /home immediately after login**
-10. [ ] **Verify /home shows Dashboard/Home screen**
-11. [ ] **Refresh page on /home - verify stays on home screen**
-12. [ ] **Navigate back - verify browser back/forward works**
+## Pre-Test Setup
+- [ ] Application is deployed and accessible
+- [ ] Firebase configuration is correct (check console for errors)
+- [ ] Test with a fresh browser session (incognito/private mode recommended)
 
-## Test 2: Second User Signup (Regular User - Needs Approval)
-1. [ ] Sign out if logged in
+## 1. First User Super Admin Creation
+**Goal:** Verify the first user becomes super_admin automatically
+
+### Steps:
+1. [ ] Open the app in a fresh browser (clear all data or use incognito)
 2. [ ] Navigate to signup page
-3. [ ] Fill in different name, email, password
-4. [ ] Capture profile photo
-5. [ ] Submit signup form
-6. [ ] Verify success message appears
-7. [ ] Check Firestore console:
-   - [ ] Document exists at `users/{uid}`
-   - [ ] Fields: `name`, `email`, `role: "user"`, `approved: false`, `profilePhotoUrl`
-8. [ ] Verify user is signed out after signup
+3. [ ] Fill in all required fields (photo, name, age, relation, phone, email, password)
+4. [ ] Submit signup form
+5. [ ] **Expected:** Redirect to `/admin/users` (not `/home` or `/chat`)
+6. [ ] Open browser console and check logs for:
+   - `createUserProfile - Creating profile for uid: [uid] role: super_admin approved: true`
+   - `getUserProfile - Role normalization: super_admin -> super_admin`
+7. [ ] Verify you can access admin pages without approval wait
 
-## Test 3: Login with Unapproved User (Critical Approval Gating)
-1. [ ] Login with second user credentials
-2. [ ] **Verify English pending approval message appears**
-3. [ ] **Verify no redirect to /home**
-4. [ ] **Verify login button is NOT stuck in loading state**
-5. [ ] **Verify form remains usable (can try again)**
-6. [ ] Check browser console for logs:
-   ```
-   LoginScreen - Attempting login for: [email]
-   firebase.ts - Attempting sign in for: [email]
-   firebase.ts - Sign in successful, checking approval...
-   firebase.ts - Reading user document from: users/{uid}
-   firebase.ts - User document data: { approved: false, ... }
-   firebase.ts - User not approved, signing out
-   LoginScreen - Login result: { needsApproval: true }
-   LoginScreen - User needs approval
-   ```
-7. [ ] **Verify fromCache indicator is false in console logs**
-8. [ ] Verify user is signed out (check Firebase Auth console)
+### Acceptance Criteria:
+- [ ] First user is created with `role: 'super_admin'` in Firestore
+- [ ] First user has `approved: true` in Firestore
+- [ ] First user is redirected to `/admin/users` after signup
+- [ ] No "Pending approval" screen is shown
 
-## Test 4: Admin Approves User
-1. [ ] Login as super admin (first user)
-2. [ ] **Verify redirect to /home**
-3. [ ] Navigate to Firestore console
-4. [ ] Find second user's document at `users/{uid}`
-5. [ ] Manually change `approved: false` to `approved: true`
-6. [ ] Save the change
+## 2. Legacy Admin Role Migration
+**Goal:** Verify existing users with legacy 'admin' role are migrated to 'super_admin'
 
-## Test 5: Login with Approved User
-1. [ ] Sign out from admin account
-2. [ ] Login with second user credentials (now approved)
-3. [ ] **Verify redirect to /home immediately**
-4. [ ] **Verify /home shows Dashboard/Home screen**
-5. [ ] **Refresh page - verify stays on /home**
-6. [ ] Check browser console for logs:
-   ```
-   LoginScreen - Attempting login for: [email]
-   firebase.ts - Attempting sign in for: [email]
-   firebase.ts - Sign in successful, checking approval...
-   firebase.ts - Reading user document from: users/{uid}
-   firebase.ts - User document data: { approved: true, ... }
-   firebase.ts - User approved, login successful
-   LoginScreen - Login result: { success: true }
-   LoginScreen - Login successful, user is approved, navigating to /home
-   ```
-7. [ ] **Verify fromCache indicator is false in console logs**
-8. [ ] Verify user remains signed in
+### Steps:
+1. [ ] If you have an existing user with `role: 'admin'` in Firestore (from old version):
+   - Log in with that account
+   - Check browser console for migration logs:
+     - `⚠️ Legacy "admin" role detected - triggering migration`
+     - `Migration complete - user is now super_admin with approved=true`
+2. [ ] Verify in Firestore that the role is now `super_admin`
+3. [ ] Verify `approved: true` is set
+4. [ ] Verify admin dashboard is accessible
 
-## Test 6: Missing Profile Handling
-1. [ ] Create a new Firebase Auth user manually in Firebase console
-2. [ ] Do NOT create a corresponding Firestore document
-3. [ ] Try to login with this user
-4. [ ] **Verify English pending approval message appears**
-5. [ ] **Verify no redirect**
-6. [ ] **Verify login button is NOT stuck**
-7. [ ] Check console logs:
-   ```
-   firebase.ts - User document does not exist
-   firebase.ts - User profile missing, signing out
-   LoginScreen - Login result: { needsApproval: true }
-   ```
+### Acceptance Criteria:
+- [ ] Legacy 'admin' role is detected and migrated automatically
+- [ ] User role is updated to 'super_admin' in Firestore
+- [ ] User is marked as approved
+- [ ] No manual Firestore edits required
 
-## Test 7: Security Rules Validation
-1. [ ] Verify authenticated users can read their own document:
-   - [ ] Login as any approved user
-   - [ ] Check console - no permission errors
-2. [ ] Verify users cannot modify `role` or `approved` fields:
-   - [ ] Attempt to update these fields via Firestore console as non-admin
-   - [ ] Should be blocked by security rules
+## 3. Admin Dashboard Access from Profile Dropdown
+**Goal:** Verify both super_admin and helper_admin can access admin dashboard from profile menu
 
-## Test 8: Error Handling
-1. [ ] Try login with wrong password
-2. [ ] **Verify user-friendly error message appears**
-3. [ ] **Verify login button is NOT stuck**
-4. [ ] Try login with non-existent email
-5. [ ] **Verify appropriate error message**
-6. [ ] **Verify login button is NOT stuck**
+### Steps:
+1. [ ] Log in as super_admin
+2. [ ] Click on avatar in top-right corner
+3. [ ] **Expected:** Dropdown shows:
+   - User name
+   - Role badge (e.g., "Super Admin")
+   - "My Profile" option
+   - **"Admin Dashboard" option** ← Must be visible
+   - "Logout" option
+4. [ ] Click "Admin Dashboard"
+5. [ ] **Expected:** Navigate to `/admin/users` successfully
+6. [ ] Repeat test with helper_admin account (if available)
+7. [ ] Verify regular users do NOT see "Admin Dashboard" option
 
-## Test 9: Password Reset Flow
-1. [ ] Navigate to password reset page
-2. [ ] Verify admin-only manual reset message is displayed
-3. [ ] Verify no Firebase password reset email is sent
+### Acceptance Criteria:
+- [ ] "Admin Dashboard" menu item is visible for super_admin
+- [ ] "Admin Dashboard" menu item is visible for helper_admin
+- [ ] "Admin Dashboard" menu item is hidden for regular users
+- [ ] Clicking "Admin Dashboard" navigates to `/admin/users`
 
-## Test 10: Logout and Navigation
-1. [ ] Login as approved user
-2. [ ] **Verify on /home**
-3. [ ] Click logout button
-4. [ ] **Verify redirect to /login**
-5. [ ] **Verify user is signed out**
-6. [ ] Try to manually navigate to /home
-7. [ ] **Verify redirect back to /login (if auth guard implemented)**
+## 4. Admin Dashboard Access from Profile Screen
+**Goal:** Verify admin CTA button on Profile screen works on mobile and desktop
 
-## Critical Checks (Must Pass)
-- [ ] **Approved users redirect to /home immediately after login**
-- [ ] **Unapproved users see English pending message without infinite spinner**
-- [ ] **Login button always ends loading state (success, needsApproval, or error)**
-- [ ] **Refresh on /home keeps user on home screen**
-- [ ] **Browser back/forward navigation works correctly**
-- [ ] **No Firebase/Firestore configuration changes needed**
-- [ ] Fresh server reads confirmed (fromCache: false in logs)
-- [ ] No cached approval state issues
-- [ ] Document path is always `users/{auth.uid}`
-- [ ] `approved` field is boolean (true/false)
-- [ ] First user gets `super_admin` role with `approved: true`
-- [ ] Subsequent users get `user` role with `approved: false`
-- [ ] Missing profiles are handled gracefully
-- [ ] Security rules prevent unauthorized modifications
+### Steps:
+1. [ ] Log in as super_admin or helper_admin
+2. [ ] Navigate to "My Profile" (from dropdown or direct navigation)
+3. [ ] Scroll down to bottom of profile card
+4. [ ] **Expected:** See "Open Admin Dashboard" button with Settings icon
+5. [ ] Click the button
+6. [ ] **Expected:** Navigate to `/admin/users` successfully
+7. [ ] Test on mobile viewport (resize browser or use mobile device)
+8. [ ] Verify button is full-width on mobile, auto-width on desktop
+9. [ ] Verify regular users do NOT see this button
+
+### Acceptance Criteria:
+- [ ] "Open Admin Dashboard" button is visible for super_admin
+- [ ] "Open Admin Dashboard" button is visible for helper_admin
+- [ ] Button is hidden for regular users
+- [ ] Button is mobile-friendly (full-width on small screens)
+- [ ] Clicking button navigates to `/admin/users`
+
+## 5. Pending User Details Dialog
+**Goal:** Verify all signup fields are shown in "View Details" dialog
+
+### Steps:
+1. [ ] Log in as super_admin or helper_admin
+2. [ ] Navigate to `/admin/users` (Pending Users screen)
+3. [ ] Ensure there is at least one pending user (create a second account if needed)
+4. [ ] Click the actions menu (three dots) for a pending user
+5. [ ] Click "View Details"
+6. [ ] **Expected:** Dialog shows ALL signup fields:
+   - Profile photo (avatar)
+   - Full name
+   - Status badge (Pending/Rejected/Blocked)
+   - Role badge
+   - Email address
+   - Phone number
+   - Age
+   - Relation
+   - User ID (UID)
+7. [ ] Verify no fields are blank (unless truly missing in Firestore)
+8. [ ] Close dialog and test with another pending user
+
+### Acceptance Criteria:
+- [ ] Dialog displays profile photo with fallback initials
+- [ ] All contact info fields are shown (email, phone)
+- [ ] All personal info fields are shown (age, relation)
+- [ ] User ID is displayed for reference
+- [ ] No accidental blank fields (use '—' fallback only when data is truly missing)
+- [ ] Both super_admin and helper_admin can open the dialog
+
+## 6. Approval Flow
+**Goal:** Verify approved users redirect to /home, unapproved users see pending message
+
+### Steps:
+1. [ ] Create a new user account (not first user)
+2. [ ] Complete signup
+3. [ ] **Expected:** Redirect to `/pending-approval` screen
+4. [ ] Verify screen shows:
+   - Heading: "Pending approval for admin"
+   - Status message explaining approval is needed
+   - "Back to Login" button
+5. [ ] Log in as super_admin
+6. [ ] Navigate to `/admin/users`
+7. [ ] Approve the pending user
+8. [ ] Log out and log back in as the approved user
+9. [ ] **Expected:** Redirect to `/chat` (not `/pending-approval`)
+10. [ ] Verify user can access all app features
+
+### Acceptance Criteria:
+- [ ] Unapproved users are redirected to `/pending-approval`
+- [ ] Pending approval screen shows correct English message
+- [ ] Approved users can access `/chat` and other features
+- [ ] No loading lock or infinite spinner
+
+## 7. Navigation and Routing
+**Goal:** Verify all routes work correctly with refresh/back/forward
+
+### Steps:
+1. [ ] Log in as approved user
+2. [ ] Navigate to `/chat`
+3. [ ] Refresh page (F5 or Cmd+R)
+4. [ ] **Expected:** Stay on `/chat`, no redirect to login
+5. [ ] Navigate to `/profile`
+6. [ ] Use browser back button
+7. [ ] **Expected:** Return to `/chat`
+8. [ ] Use browser forward button
+9. [ ] **Expected:** Return to `/profile`
+10. [ ] Test with admin routes (`/admin/users`, `/admin/chats`, etc.)
+
+### Acceptance Criteria:
+- [ ] Refresh works on all routes without losing auth state
+- [ ] Browser back/forward buttons work correctly
+- [ ] No unexpected redirects or blank screens
+
+## 8. Role-Based Access Control
+**Goal:** Verify route guards work correctly for all roles
+
+### Steps:
+1. [ ] Log in as regular user
+2. [ ] Try to access `/admin/users` directly (type in URL or navigate)
+3. [ ] **Expected:** Redirect to `/chat` (not allowed)
+4. [ ] Log in as helper_admin
+5. [ ] Access `/admin/users`
+6. [ ] **Expected:** Access granted, can view pending users
+7. [ ] Verify helper_admin can approve/reject but NOT promote to helper_admin
+8. [ ] Log in as super_admin
+9. [ ] Verify super_admin can promote users to helper_admin
+
+### Acceptance Criteria:
+- [ ] Regular users cannot access admin routes
+- [ ] Helper admins can access admin routes
+- [ ] Super admins have full access
+- [ ] Role-specific actions are enforced (e.g., only super_admin can promote)
+
+## 9. Console Logs and Debugging
+**Goal:** Verify console logs are helpful for debugging
+
+### Steps:
+1. [ ] Open browser console (F12)
+2. [ ] Log in and navigate through the app
+3. [ ] Check for:
+   - Role normalization logs
+   - Profile fetch logs with field inspection
+   - Admin access check logs
+   - No unexpected errors or warnings
+
+### Acceptance Criteria:
+- [ ] Console logs clearly show role normalization
+- [ ] Profile fetch logs show exact Firestore field names
+- [ ] Admin route guard logs show access decisions
+- [ ] No critical errors in console
+
+## 10. Firebase Configuration
+**Goal:** Verify Firebase is configured correctly
+
+### Steps:
+1. [ ] Check browser console for Firebase initialization logs
+2. [ ] Verify no "Firebase not initialized" errors
+3. [ ] Check Firestore rules are deployed correctly
+4. [ ] Verify helper_admin can read users collection
+5. [ ] Verify helper_admin cannot update role/phone/email fields
+
+### Acceptance Criteria:
+- [ ] Firebase SDK loads successfully
+- [ ] Firestore rules allow helper_admin read access
+- [ ] Firestore rules restrict helper_admin write access appropriately
+- [ ] No configuration errors in console
+
+## Post-Test Verification
+- [ ] All critical paths tested and working
+- [ ] No blocking issues found
+- [ ] Console logs are clean (no critical errors)
+- [ ] Ready for production use
+
+## Rollback Procedure
+If critical issues are found:
+1. Document the issue with screenshots and console logs
+2. Revert to previous version if necessary
+3. Fix issues in development environment
+4. Re-run smoke tests before re-deploying
 
 ## Notes
-- All console logs should be present for debugging
-- No errors should appear in browser console during normal flow
-- Firebase Auth state should be consistent with Firestore approval state
-- Profile photos should be stored in Firebase Storage and accessible
+- Test with multiple browsers (Chrome, Firefox, Safari) if possible
+- Test on both desktop and mobile devices
+- Clear browser cache if experiencing unexpected behavior
+- Check Firestore console to verify data is written correctly

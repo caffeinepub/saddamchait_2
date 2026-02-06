@@ -1,5 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { useFirestoreUserProfile } from '@/hooks/useFirestoreUserProfile';
+import { isAdminRole } from '@/lib/roles';
 
 interface AdminRouteGuardProps {
   children: ReactNode;
@@ -11,8 +12,9 @@ export default function AdminRouteGuard({ children, onUnauthorized }: AdminRoute
 
   useEffect(() => {
     if (!isLoading && userProfile) {
-      const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
-      if (!isAdmin) {
+      const hasAdminAccess = isAdminRole(userProfile.role);
+      console.log('AdminRouteGuard - Role check:', userProfile.role, 'hasAdminAccess:', hasAdminAccess);
+      if (!hasAdminAccess) {
         onUnauthorized();
       }
     }
@@ -29,9 +31,9 @@ export default function AdminRouteGuard({ children, onUnauthorized }: AdminRoute
     );
   }
 
-  const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'helper_admin';
+  const hasAdminAccess = isAdminRole(userProfile?.role);
 
-  if (!isAdmin) {
+  if (!hasAdminAccess) {
     return null;
   }
 

@@ -49,7 +49,6 @@ export interface backendInterface {
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     listIncomingChatRequests(): Promise<Array<[ChatRequestId, ChatRequest]>>;
     listOutgoingChatRequests(): Promise<Array<[ChatRequestId, ChatRequest]>>;
-    refreshAdmins(): Promise<Array<Principal>>;
     rejectChatRequest(requestId: ChatRequestId): Promise<void>;
     requestApproval(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;

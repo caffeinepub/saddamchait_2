@@ -1,14 +1,36 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useFirestoreUserProfile } from '@/hooks/useFirestoreUserProfile';
-import { Mail, User, Shield } from 'lucide-react';
+import { useFirebaseAuthUser } from '@/hooks/useFirebaseAuthUser';
+import { Mail, User, Shield, Settings } from 'lucide-react';
 
-export default function ProfileScreen() {
+type Route = 
+  | '/login' 
+  | '/signup' 
+  | '/password-reset'
+  | '/home' 
+  | '/profile' 
+  | '/chat' 
+  | '/users'
+  | '/pending-approval'
+  | '/admin'
+  | '/admin/users'
+  | '/admin/chats'
+  | '/admin/reports'
+  | '/admin/settings';
+
+interface ProfileScreenProps {
+  onNavigate?: (route: Route) => void;
+}
+
+export default function ProfileScreen({ onNavigate }: ProfileScreenProps) {
   const { data: userProfile, isLoading } = useFirestoreUserProfile();
+  const { authUser } = useFirebaseAuthUser();
 
-  console.log('ProfileScreen - Rendering with userProfile:', userProfile, 'isLoading:', isLoading);
+  console.log('ProfileScreen - Rendering with userProfile:', userProfile, 'authUser:', authUser, 'isLoading:', isLoading);
 
   if (isLoading) {
     return (
@@ -42,13 +64,13 @@ export default function ProfileScreen() {
     return fullName.slice(0, 2).toUpperCase();
   };
 
-  const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
+  const isSuperAdmin = userProfile.role === 'super_admin';
   
-  // Read ONLY from Firestore userProfile (NOT Firebase Auth)
-  const photoURL = userProfile.photoURL?.trim() || '';
+  // Prefer Firebase Auth data when available, fallback to Firestore
+  const photoURL = (authUser?.photoURL || userProfile.photoURL || '').trim();
   const hasPhoto = photoURL.length > 0;
-  const displayName = userProfile.fullName;
-  const displayEmail = userProfile.email;
+  const displayName = authUser?.displayName || userProfile.fullName;
+  const displayEmail = authUser?.email || userProfile.email;
 
   console.log('ProfileScreen - Display bindings:', {
     displayName: displayName,
@@ -56,8 +78,15 @@ export default function ProfileScreen() {
     hasPhoto: hasPhoto,
     photoURL: hasPhoto ? photoURL.substring(0, 50) + '...' : '(empty)',
     role: userProfile.role,
-    source: 'Firestore users/{uid}'
+    isSuperAdmin: isSuperAdmin,
+    source: authUser?.displayName ? 'Firebase Auth' : 'Firestore users/{uid}'
   });
+
+  const handleAdminDashboard = () => {
+    if (onNavigate) {
+      onNavigate('/admin/users');
+    }
+  };
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -80,7 +109,7 @@ export default function ProfileScreen() {
               </Avatar>
               <div className="space-y-1">
                 <h2 className="text-2xl font-semibold">{displayName}</h2>
-                {isAdmin && (
+                {isSuperAdmin && (
                   <Badge variant="outline" className="capitalize">
                     {userProfile.role.replace('_', ' ')}
                   </Badge>
@@ -111,7 +140,7 @@ export default function ProfileScreen() {
                 </div>
               </div>
 
-              {isAdmin && (
+              {isSuperAdmin && (
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                     <Shield className="h-5 w-5 text-primary" />
@@ -123,6 +152,25 @@ export default function ProfileScreen() {
                 </div>
               )}
             </div>
+
+            {isSuperAdmin && (
+              <>
+                <Separator />
+                <div className="pt-2">
+                  <Button 
+                    onClick={handleAdminDashboard}
+                    className="w-full sm:w-auto"
+                    size="lg"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Open Admin Dashboard
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Manage users, review pending approvals, and configure app settings
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

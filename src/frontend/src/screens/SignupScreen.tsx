@@ -7,7 +7,7 @@ import { Camera, Image as ImageIcon, X, AlertCircle } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useCamera } from '@/camera/useCamera';
 import { processProfileImage, type ProcessedImage } from '@/lib/profileImageProcessing';
-import { signUpWithEmail } from '@/lib/firebase';
+import { signUpWithEmail, createUserProfile, isFirstUser } from '@/lib/firebase';
 import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
 
 interface SignupScreenProps {
@@ -176,38 +176,48 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
     setErrors({});
 
     try {
-      const result = await signUpWithEmail(email, password, {
-        fullName,
-        age: parseInt(age, 10),
-        relation,
-        phoneNumber,
-        photoURL: profileImage?.dataUrl || '',
-      });
+      // Check if this is the first user
+      const firstUser = await isFirstUser();
+      console.log('SignupScreen - Is first user:', firstUser);
 
-      if (result.success) {
-        // Redirect based on whether this was the first user
-        if (result.isFirstUser) {
-          console.log('SignupScreen - First user (super_admin, approved), redirecting to /admin/users');
-          onSignupSuccess('/admin/users');
-        } else {
-          console.log('SignupScreen - Not first user, redirecting to /pending-approval');
-          onSignupSuccess('/pending-approval');
-        }
-      } else if (result.error) {
-        const errorMessage = getFirebaseErrorMessage(result.error);
-        
-        if (result.isProfileError) {
-          setErrors({ 
-            submit: `${errorMessage} Your account was created but profile setup failed. Please contact support.` 
+      // Create Firebase auth account
+      const result = await signUpWithEmail(email, password);
+      console.log('SignupScreen - Auth account created:', result);
+
+      if (result && result.user) {
+        // Create user profile in Firestore
+        try {
+          await createUserProfile({
+            fullName,
+            age: parseInt(age, 10),
+            relation,
+            phoneNumber,
+            email,
+            photoURL: profileImage?.dataUrl || '',
           });
-        } else {
-          setErrors({ submit: errorMessage });
+
+          console.log('SignupScreen - Profile created successfully');
+
+          // Redirect based on whether this was the first user
+          if (firstUser) {
+            console.log('SignupScreen - First user (super_admin, approved), redirecting to /admin/users');
+            onSignupSuccess('/admin/users');
+          } else {
+            console.log('SignupScreen - Not first user, redirecting to /pending-approval');
+            onSignupSuccess('/pending-approval');
+          }
+        } catch (profileError: any) {
+          console.error('SignupScreen - Profile creation error:', profileError);
+          setErrors({ 
+            submit: `Profile setup failed: ${profileError.message}. Your account was created but profile setup failed. Please contact support.` 
+          });
+          setIsSubmitting(false);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
-      setErrors({ submit: 'An unexpected error occurred. Please try again.' });
-    } finally {
+      const errorMessage = getFirebaseErrorMessage(error.code || error.message || 'unknown');
+      setErrors({ submit: errorMessage });
       setIsSubmitting(false);
     }
   };
@@ -388,40 +398,40 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="age">Age *</Label>
-            <Input
-              id="age"
-              type="number"
-              placeholder="25"
-              value={age}
-              onChange={(e) => {
-                setAge(e.target.value);
-                setErrors((prev) => ({ ...prev, age: '' }));
-              }}
-              min="1"
-              max="150"
-            />
-            {errors.age && (
-              <p className="text-xs text-destructive">{errors.age}</p>
-            )}
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="age">Age *</Label>
+              <Input
+                id="age"
+                type="number"
+                placeholder="25"
+                value={age}
+                onChange={(e) => {
+                  setAge(e.target.value);
+                  setErrors((prev) => ({ ...prev, age: '' }));
+                }}
+              />
+              {errors.age && (
+                <p className="text-xs text-destructive">{errors.age}</p>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="relation">Relation *</Label>
-            <Input
-              id="relation"
-              type="text"
-              placeholder="e.g., friend, relative, teacher, doctor"
-              value={relation}
-              onChange={(e) => {
-                setRelation(e.target.value);
-                setErrors((prev) => ({ ...prev, relation: '' }));
-              }}
-            />
-            {errors.relation && (
-              <p className="text-xs text-destructive">{errors.relation}</p>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="relation">Relation *</Label>
+              <Input
+                id="relation"
+                type="text"
+                placeholder="Friend"
+                value={relation}
+                onChange={(e) => {
+                  setRelation(e.target.value);
+                  setErrors((prev) => ({ ...prev, relation: '' }));
+                }}
+              />
+              {errors.relation && (
+                <p className="text-xs text-destructive">{errors.relation}</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -493,7 +503,7 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+            {isSubmitting ? 'Creating account...' : 'Sign Up'}
           </Button>
         </form>
 
@@ -504,7 +514,7 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
             onClick={onNavigateToLogin}
             className="font-medium text-primary hover:underline focus:outline-none focus:underline"
           >
-            Log in
+            Login
           </button>
         </div>
       </div>

@@ -6,15 +6,20 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    // Helper function to safely check if user document exists
+    function userDocExists() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
     // Helper function to check if user is super_admin
     function isSuperAdmin() {
-      return isAuthenticated() && 
+      return userDocExists() &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     
     // Helper function to check if user is helper_admin
     function isHelperAdmin() {
-      return isAuthenticated() && 
+      return userDocExists() &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'helper_admin';
     }
     
@@ -25,7 +30,7 @@ service cloud.firestore {
     
     // Helper function to check if user is approved
     function isApproved() {
-      return isAuthenticated() && 
+      return userDocExists() &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true;
     }
     
@@ -37,18 +42,33 @@ service cloud.firestore {
       // Allow admins (super_admin and helper_admin) to read all users (for pending list)
       allow read: if isAdmin();
       
-      // Allow create during signup (first user becomes super_admin)
+      // Allow create during signup - authenticated users can create their own profile
+      // This rule is evaluated FIRST and doesn't require the document to exist
       allow create: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Allow authenticated users to update their own signup profile fields only
+      // (fullName, age, relation, phoneNumber, email, photoURL)
+      // Cannot update admin-only fields (role, approved, rejected, blocked, createdAt)
+      allow update: if isAuthenticated() && 
+                       request.auth.uid == userId &&
+                       !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['role', 'approved', 'rejected', 'blocked', 'createdAt']);
       
       // Super_admin can update any field
       allow update: if isSuperAdmin();
       
       // Helper_admin can only update approval/rejection status (not role, phone, email)
       allow update: if isHelperAdmin() && 
-                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'phone', 'email']));
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'phoneNumber', 'email']);
       
       // Only super_admin can delete profiles
       allow delete: if isSuperAdmin();
+    }
+    
+    // Profile collection (nested under profile/users path)
+    match /profile/users/{userId} {
+      // Allow authenticated users to create their own profile document
+      allow create: if isAuthenticated() && request.auth.uid == userId;
     }
     
     // Chat requests collection

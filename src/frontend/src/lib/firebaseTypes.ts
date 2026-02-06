@@ -5,7 +5,7 @@ export interface UserProfile {
   phoneNumber: string;
   email: string;
   photoURL: string;
-  role: 'super_admin' | 'helper_admin' | 'user';
+  role: 'super_admin' | 'helper_admin' | 'user' | 'admin'; // Allow legacy 'admin' for migration
   approved: boolean;
   rejected?: boolean;
   blocked?: boolean;

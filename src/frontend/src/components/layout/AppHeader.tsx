@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestoreUserProfile } from '@/hooks/useFirestoreUserProfile';
+import { useFirebaseAuthUser } from '@/hooks/useFirebaseAuthUser';
 import ProfileMenu from './ProfileMenu';
 
 interface AppHeaderProps {
@@ -7,9 +8,10 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ onNavigate }: AppHeaderProps) {
-  const { data: userProfile, isLoading } = useFirestoreUserProfile();
+  const { data: userProfile, isLoading: profileLoading } = useFirestoreUserProfile();
+  const { authUser } = useFirebaseAuthUser();
 
-  console.log('AppHeader - Rendering with userProfile:', userProfile, 'isLoading:', isLoading);
+  console.log('AppHeader - Rendering with userProfile:', userProfile, 'authUser:', authUser, 'isLoading:', profileLoading);
 
   const getInitials = (fullName: string) => {
     if (!fullName || fullName.trim().length === 0) return '??';
@@ -20,16 +22,16 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
     return fullName.slice(0, 2).toUpperCase();
   };
 
-  // Read ONLY from Firestore userProfile (NOT Firebase Auth)
-  const photoURL = userProfile?.photoURL?.trim() || '';
+  // Prefer Firebase Auth data when available, fallback to Firestore
+  const photoURL = (authUser?.photoURL || userProfile?.photoURL || '').trim();
   const hasPhoto = photoURL.length > 0;
-  const displayName = userProfile?.fullName || 'User';
+  const displayName = authUser?.displayName || userProfile?.fullName || 'User';
 
   console.log('AppHeader - Display bindings:', {
     displayName: displayName,
     hasPhoto: hasPhoto,
     photoURL: hasPhoto ? photoURL.substring(0, 50) + '...' : '(empty)',
-    source: 'Firestore users/{uid}'
+    source: authUser?.displayName ? 'Firebase Auth' : 'Firestore users/{uid}'
   });
 
   const isSuperAdmin = userProfile?.role === 'super_admin';
@@ -38,6 +40,9 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
     if (isSuperAdmin) {
       console.log('AppHeader - Super Admin avatar clicked, navigating to /admin/users');
       onNavigate('/admin/users');
+    } else {
+      console.log('AppHeader - Non-super-admin avatar clicked, navigating to /profile');
+      onNavigate('/profile');
     }
   };
 
@@ -53,8 +58,8 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
           <h1 className="text-lg font-semibold">Saddam Chat</h1>
         </div>
 
-        {!isLoading && userProfile && (
-          <ProfileMenu userProfile={userProfile} onNavigate={onNavigate}>
+        {!profileLoading && userProfile && (
+          <ProfileMenu userProfile={userProfile} authUser={authUser} onNavigate={onNavigate}>
             <button 
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               onClick={handleAvatarClick}

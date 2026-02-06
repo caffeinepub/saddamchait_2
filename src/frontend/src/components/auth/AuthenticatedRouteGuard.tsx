@@ -1,41 +1,49 @@
 import { ReactNode, useEffect } from 'react';
 import { useFirebaseAuthUser } from '@/hooks/useFirebaseAuthUser';
 import { useFirestoreUserProfile } from '@/hooks/useFirestoreUserProfile';
+import { isAdminRole } from '@/lib/roles';
 
 interface AuthenticatedRouteGuardProps {
   children: ReactNode;
-  onUnauthorized: () => void;
+  onUnauthenticated: () => void;
   onUnapproved?: () => void;
 }
 
-export default function AuthenticatedRouteGuard({ 
-  children, 
-  onUnauthorized,
-  onUnapproved 
+export default function AuthenticatedRouteGuard({
+  children,
+  onUnauthenticated,
+  onUnapproved,
 }: AuthenticatedRouteGuardProps) {
   const { authUser, isLoading: authLoading } = useFirebaseAuthUser();
   const { data: userProfile, isLoading: profileLoading } = useFirestoreUserProfile();
 
   useEffect(() => {
     if (!authLoading && !authUser) {
-      onUnauthorized();
+      onUnauthenticated();
     }
-  }, [authUser, authLoading, onUnauthorized]);
+  }, [authUser, authLoading, onUnauthenticated]);
 
-  // Check approval status after profile is loaded
   useEffect(() => {
     if (!authLoading && !profileLoading && authUser && userProfile) {
-      // If user is not approved and not an admin, redirect to pending approval
-      const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
-      if (!userProfile.approved && !isAdmin && onUnapproved) {
+      // Admins bypass approval check
+      const hasAdminAccess = isAdminRole(userProfile.role);
+      console.log('AuthenticatedRouteGuard - Approval check:', {
+        role: userProfile.role,
+        hasAdminAccess: hasAdminAccess,
+        approved: userProfile.approved,
+        blocked: userProfile.blocked,
+        rejected: userProfile.rejected
+      });
+      
+      if (!hasAdminAccess && !userProfile.approved && onUnapproved) {
         onUnapproved();
       }
     }
-  }, [authUser, authLoading, profileLoading, userProfile, onUnapproved]);
+  }, [authUser, userProfile, authLoading, profileLoading, onUnapproved]);
 
   if (authLoading || profileLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
@@ -44,7 +52,13 @@ export default function AuthenticatedRouteGuard({
     );
   }
 
-  if (!authUser || !userProfile) {
+  if (!authUser) {
+    return null;
+  }
+
+  // Admins bypass approval check
+  const hasAdminAccess = isAdminRole(userProfile?.role);
+  if (!hasAdminAccess && !userProfile?.approved) {
     return null;
   }
 

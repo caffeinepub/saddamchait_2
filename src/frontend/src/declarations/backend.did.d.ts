@@ -51,7 +51,6 @@ export interface _SERVICE {
     [],
     Array<[ChatRequestId, ChatRequest]>
   >,
-  'refreshAdmins' : ActorMethod<[], Array<Principal>>,
   'rejectChatRequest' : ActorMethod<[ChatRequestId], undefined>,
   'requestApproval' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,

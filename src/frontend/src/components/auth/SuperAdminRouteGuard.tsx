@@ -1,5 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { useFirestoreUserProfile } from '@/hooks/useFirestoreUserProfile';
+import { isSuperAdminRole } from '@/lib/roles';
 
 interface SuperAdminRouteGuardProps {
   children: ReactNode;
@@ -11,8 +12,9 @@ export default function SuperAdminRouteGuard({ children, onUnauthorized }: Super
 
   useEffect(() => {
     if (!isLoading && userProfile) {
-      const isSuperAdmin = userProfile.role === 'super_admin';
-      if (!isSuperAdmin) {
+      const hasSuperAdminAccess = isSuperAdminRole(userProfile.role);
+      console.log('SuperAdminRouteGuard - Role check:', userProfile.role, 'hasSuperAdminAccess:', hasSuperAdminAccess);
+      if (!hasSuperAdminAccess) {
         onUnauthorized();
       }
     }
@@ -20,18 +22,18 @@ export default function SuperAdminRouteGuard({ children, onUnauthorized }: Super
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Verifying permissions...</p>
+          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
-  const isSuperAdmin = userProfile?.role === 'super_admin';
+  const hasSuperAdminAccess = isSuperAdminRole(userProfile?.role);
 
-  if (!isSuperAdmin) {
+  if (!hasSuperAdminAccess) {
     return null;
   }
 

@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-the-first-registered-user-role-super-admin-can-access-an-in-app-super-admin-dashboard-from-the-profile-avatar-menu-without-relying-on-firebase-auth-displayname-photourl-use-firestore-users-uid-role-only",
-      "featureTitle": "Ensure the first registered user (role: \"super_admin\") can access an in-app Super Admin dashboard from the profile/avatar menu, without relying on Firebase Auth displayName/photoURL (use Firestore `users/{uid}.role` only).",
+      "featureId": "feature-update-firestore-security-rules-to-allow-a-newly-authenticated-user-to-create-their-own-profile-document-during-signup-by-permitting-writes-when-request-auth-null-and-request-auth-uid-userid-for-the-profile-document-path-used-by-the-app-users-userid-do-not-change-any-signup-flow-logic-admin-helper-logic-or-add-new-features",
+      "featureTitle": "Update Firestore security rules to allow a newly authenticated user to CREATE their own profile document during signup by permitting writes when `request.auth != null` and `request.auth.uid == userId` for the profile document path used by the app (`users/{userId}`). Do not change any signup flow logic, admin/helper logic, or add new features.",
       "files": [
-        "frontend/src/components/layout/AppHeader.tsx",
-        "frontend/src/components/layout/ProfileMenu.tsx"
+        "frontend/firestore.rules"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -20,52 +19,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-confirm-an-admin-users-approval-screen-that-lets-super-admins-review-full-signup-details-for-each-pending-user-and-approve-reject-them-from-within-the-app",
-      "featureTitle": "Implement/confirm an Admin Users approval screen that lets super admins review full signup details for each pending user and approve/reject them from within the app.",
-      "files": [
-        "frontend/src/components/admin/PendingUserDetailsDialog.tsx",
-        "frontend/src/components/admin/UserRowActions.tsx",
-        "frontend/src/screens/admin/AdminUsersScreen.tsx"
-      ],
-      "components": [
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "camera@1.0.0",
-        "authorization@4.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-that-newly-signed-up-or-newly-logged-in-unapproved-users-see-an-in-app-pending-message-that-clearly-states-the-account-is-pending-admin-approval-use-english-user-facing-text",
-      "featureTitle": "Ensure that newly signed-up or newly logged-in unapproved users see an in-app pending message that clearly states the account is pending admin approval (use English user-facing text).",
-      "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/auth/AuthenticatedRouteGuard.tsx",
-        "frontend/src/screens/PendingApprovalScreen.tsx"
-      ],
-      "components": [
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "camera@1.0.0",
-        "authorization@4.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
       ],
       "confidence": "high"
     }

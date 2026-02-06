@@ -19,19 +19,25 @@ interface ProfileMenuProps {
     photoURL: string;
     email: string;
   };
+  authUser: {
+    uid: string;
+    email: string | null;
+    displayName?: string | null;
+    photoURL?: string | null;
+  } | null;
   onNavigate: (route: any) => void;
   children: ReactNode;
 }
 
-export default function ProfileMenu({ userProfile, onNavigate, children }: ProfileMenuProps) {
+export default function ProfileMenu({ userProfile, authUser, onNavigate, children }: ProfileMenuProps) {
   const queryClient = useQueryClient();
   const isSuperAdmin = userProfile.role === 'super_admin';
   const isUser = userProfile.role === 'user';
   
-  // Read ONLY from Firestore userProfile prop (NOT Firebase Auth)
-  const displayName = userProfile.fullName || 'User';
+  // Prefer Firebase Auth data when available, fallback to Firestore
+  const displayName = authUser?.displayName || userProfile.fullName || 'User';
 
-  console.log('ProfileMenu - Display name from Firestore:', displayName, 'role:', userProfile.role);
+  console.log('ProfileMenu - Display name:', displayName, 'role:', userProfile.role, 'isSuperAdmin:', isSuperAdmin);
 
   const handleLogout = async () => {
     try {

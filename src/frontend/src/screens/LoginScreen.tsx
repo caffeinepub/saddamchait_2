@@ -7,13 +7,12 @@ import { AlertCircle } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { signInWithEmail, getUserProfile } from '@/lib/firebase';
 import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
-import { getPostLoginRoute } from '@/lib/postLoginRedirect';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface LoginScreenProps {
   onNavigateToSignup: () => void;
   onNavigateToReset: () => void;
-  onLoginSuccess: (redirectTo: '/chat' | '/pending-approval' | '/admin/users') => void;
+  onLoginSuccess: (redirectTo: '/chat' | '/pending-approval') => void;
 }
 
 export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onLoginSuccess }: LoginScreenProps) {
@@ -33,9 +32,12 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onL
       const result = await signInWithEmail(email, password);
       console.log('LoginScreen - Login result:', result);
 
-      if (result.success && result.uid) {
-        // Fetch user profile to determine redirect
-        const profile = await getUserProfile(result.uid);
+      // Firebase returns UserCredential with user object
+      if (result && result.user) {
+        const uid = result.user.uid;
+        
+        // Fetch user profile to check blocked/rejected/approved status
+        const profile = await getUserProfile(uid);
         console.log('LoginScreen - Profile fetched:', profile);
 
         if (!profile) {
@@ -45,8 +47,8 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onL
         }
 
         // Pre-populate React Query cache with the fetched profile
-        queryClient.setQueryData(['userProfile', result.uid], profile);
-        console.log('LoginScreen - Profile cached in React Query for uid:', result.uid);
+        queryClient.setQueryData(['userProfile', uid], profile);
+        console.log('LoginScreen - Profile cached in React Query for uid:', uid);
 
         // Check if user is blocked
         if (profile.blocked) {
@@ -62,20 +64,22 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onL
           return;
         }
 
-        // Use the shared redirect helper
-        const redirectTo = getPostLoginRoute(profile);
-        console.log('LoginScreen - Redirecting to:', redirectTo);
-        onLoginSuccess(redirectTo);
-      } else if (result.error) {
-        // Firebase error
-        console.log('LoginScreen - Firebase error:', result.error);
-        const errorMessage = getFirebaseErrorMessage(result.error);
-        setError(errorMessage);
-        setIsLoggingIn(false);
+        // Check if user is not approved (and not admin)
+        const isAdmin = profile.role === 'super_admin' || profile.role === 'helper_admin';
+        if (!profile.approved && !isAdmin) {
+          console.log('LoginScreen - User not approved, redirecting to /pending-approval');
+          onLoginSuccess('/pending-approval');
+          return;
+        }
+
+        // ALWAYS navigate to /chat after successful login (regardless of role)
+        console.log('LoginScreen - Login successful, redirecting to /chat');
+        onLoginSuccess('/chat');
       }
-    } catch (err) {
-      console.error('LoginScreen - Unexpected error:', err);
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err: any) {
+      console.error('LoginScreen - Error:', err);
+      const errorMessage = getFirebaseErrorMessage(err.code || err.message || 'unknown');
+      setError(errorMessage);
       setIsLoggingIn(false);
     }
   };

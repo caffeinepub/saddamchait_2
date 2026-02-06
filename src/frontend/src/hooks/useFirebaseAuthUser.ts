@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 interface AuthUser {
   uid: string;
   email: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
 }
 
 // Wait for Firebase to be loaded from CDN
@@ -56,6 +58,8 @@ export function useFirebaseAuthUser() {
             setAuthUser({
               uid: user.uid,
               email: user.email,
+              displayName: user.displayName,
+              photoURL: user.photoURL,
             });
           } else {
             setAuthUser(null);

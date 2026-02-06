@@ -4,17 +4,16 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Iter "mo:core/Iter";
 import Set "mo:core/Set";
 
-actor {
-  // New stable field for persistent admin state.
-  stable var adminState = Set.empty<Principal>();
 
-  // Initialize access control state.
+
+actor {
+  // Initialize access control state
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
-  // Initialize approval state.
+
+  // Initialize approval state
   let approvalState = UserApproval.initState(accessControlState);
 
   // User profile type
@@ -96,77 +95,6 @@ actor {
     UserApproval.listApprovals(approvalState);
   };
 
-  type AdminCache = {
-    admins : Set.Set<Principal>;
-    timestamp : Nat;
-  };
-
-  var lastAdminCache : ?AdminCache = null;
-
-  // Admin helpers
-  public shared ({ caller }) func refreshAdmins() : async [Principal] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
-    };
-
-    let currentTime = getCurrentTime();
-    let cacheTimeThreshold : Nat = 1_000_000_000; // 1 second in nanoseconds
-
-    // Check cache and force refresh
-    switch (lastAdminCache) {
-      case (?{ admins; timestamp }) {
-        if (currentTime - timestamp < cacheTimeThreshold) {
-          return admins.toArray();
-        };
-      };
-      case (null) {};
-    };
-
-    // Force update - fetch all admins
-    let currentState = adminState;
-    lastAdminCache := ?{
-      admins = currentState;
-      timestamp = currentTime;
-    };
-
-    switch (lastAdminCache) {
-      case (?cache) { cache.admins.toArray() };
-      case (null) { [] };
-    };
-  };
-
-  func getCurrentTime() : Nat {
-    // Placeholder for time management, can be replaced with a real time source.
-    nextChatRequestId;
-  };
-
-  func getAdmins() : Set.Set<Principal> {
-    adminState;
-  };
-
-  func addAdmin(admin : Principal) {
-    switch (lastAdminCache) {
-      case (?cache) {
-        let cacheClone = cache.admins.clone();
-        cacheClone.add(admin);
-        adminState := cacheClone;
-      };
-      case (null) {};
-    };
-  };
-
-  func removeAdmin(admin : Principal) {
-    switch (lastAdminCache) {
-      case (?cache) {
-        let cacheClone = cache.admins.clone();
-        cacheClone.remove(admin);
-        adminState := cacheClone;
-      };
-      case (null) {};
-    };
-  };
-
-  // Helper: Check if user is approved or admin
   func isUserApprovedOrAdmin(user : Principal) : Bool {
     AccessControl.hasPermission(accessControlState, user, #admin) or UserApproval.isApproved(approvalState, user);
   };
@@ -195,7 +123,7 @@ actor {
       fromUid = caller;
       toUid = toUid;
       status = #pending;
-      createdAt = getCurrentTime();
+      createdAt = nextChatRequestId;
     };
 
     chatRequests.add(requestId, request);

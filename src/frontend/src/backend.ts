@@ -132,7 +132,6 @@ export interface backendInterface {
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     listIncomingChatRequests(): Promise<Array<[ChatRequestId, ChatRequest]>>;
     listOutgoingChatRequests(): Promise<Array<[ChatRequestId, ChatRequest]>>;
-    refreshAdmins(): Promise<Array<Principal>>;
     rejectChatRequest(requestId: ChatRequestId): Promise<void>;
     requestApproval(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
@@ -322,20 +321,6 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.listOutgoingChatRequests();
             return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async refreshAdmins(): Promise<Array<Principal>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.refreshAdmins();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.refreshAdmins();
-            return result;
         }
     }
     async rejectChatRequest(arg0: ChatRequestId): Promise<void> {
