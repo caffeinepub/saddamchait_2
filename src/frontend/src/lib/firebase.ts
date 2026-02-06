@@ -95,6 +95,9 @@ export async function isFirstUser(): Promise<boolean> {
 export async function createUserProfile(
   profileData: {
     name: string;
+    age: number;
+    relation: string;
+    phone: string;
     email: string;
     photoURL: string;
   }
@@ -125,6 +128,9 @@ export async function createUserProfile(
   // Write to users/{uid} using the authenticated user's UID
   await setDoc(doc(db, 'users', uid), {
     name: profileData.name,
+    age: profileData.age,
+    relation: profileData.relation,
+    phone: profileData.phone,
     email: email,
     photoURL: profileData.photoURL,
     role,
@@ -136,7 +142,7 @@ export async function createUserProfile(
 }
 
 // Helper: Get user profile from Firestore with FRESH server read (no cache)
-export async function getUserProfile(uid: string): Promise<{ name: string; email: string; photoURL: string; role: string; approved: boolean } | null> {
+export async function getUserProfile(uid: string): Promise<{ name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean } | null> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -157,6 +163,9 @@ export async function getUserProfile(uid: string): Promise<{ name: string; email
       const approved = data.approved === true;
       const role = data.role ?? 'user';
       const name = data.name ?? '';
+      const age = data.age ?? 0;
+      const relation = data.relation ?? '';
+      const phone = data.phone ?? '';
       const email = data.email ?? '';
       const photoURL = data.photoURL ?? '';
       
@@ -164,6 +173,9 @@ export async function getUserProfile(uid: string): Promise<{ name: string; email
       
       return {
         name,
+        age,
+        relation,
+        phone,
         email,
         photoURL,
         approved,
@@ -180,7 +192,7 @@ export async function getUserProfile(uid: string): Promise<{ name: string; email
 }
 
 // Helper: Get all users (admin only)
-export async function getAllUsers(): Promise<Array<{ uid: string; name: string; email: string; photoURL: string; role: string; approved: boolean; createdAt: any }>> {
+export async function getAllUsers(): Promise<Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; createdAt: any }>> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -191,12 +203,15 @@ export async function getAllUsers(): Promise<Array<{ uid: string; name: string; 
     const usersRef = collection(db, 'users');
     const snapshot = await getDocs(usersRef);
     
-    const users: Array<{ uid: string; name: string; email: string; photoURL: string; role: string; approved: boolean; createdAt: any }> = [];
+    const users: Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; createdAt: any }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
       users.push({
         uid: doc.id,
         name: data.name ?? '',
+        age: data.age ?? 0,
+        relation: data.relation ?? '',
+        phone: data.phone ?? '',
         email: data.email ?? '',
         photoURL: data.photoURL ?? '',
         role: data.role ?? 'user',
@@ -479,6 +494,9 @@ export async function signUpWithEmail(
   password: string,
   profileData: {
     name: string;
+    age: number;
+    relation: string;
+    phone: string;
     photoURL: string;
   }
 ): Promise<{ success: boolean; error?: string; isProfileError?: boolean; isFirstUser?: boolean }> {

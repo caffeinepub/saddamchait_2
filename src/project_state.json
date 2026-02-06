@@ -1,128 +1,27 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Implement role-aware chat app flow where all approved users (including admin/super_admin) land on /chat, can discover users via /users, and must use a chat request/accept flow before 1:1 chats are created; admin dashboard access is separate and never interferes with chat.",
+  "summary": "Build the Saddam Chat app’s secure signup flow using Firebase Auth + Firestore, including required profile photo upload, first-user super_admin auto-approval logic, and post-signup routing to Pending Approval or Chat (excluding admin dashboard and security rules for now).",
   "architectural_notes": [
-    "Role model: super_admin is both admin and normal user; admins/super_admin must appear in user list like normal users.",
-    "Safety constraints: do not delete existing users; do not change existing roles or approvals; respect existing super_admin bootstrap logic.",
-    "Routing rule: /chat is the default landing page for all approved users regardless of role; admin routes must not override chat routing.",
-    "Data model: chat_request document {fromUid,toUid,status:'pending',createdAt}; 1:1 chat thread created only upon acceptance."
+    "Use Firebase Auth for account creation and Firestore users/{uid} for user profile fields: name, age, relation, phone, email, photoURL, role, approved, createdAt (server timestamp).",
+    "Role/approval bootstrap logic: if first user in users collection => role=super_admin, approved=true; else role=user, approved=false.",
+    "Post-signup routing: approved=false shows Pending Approval screen; approved=true redirects to chat screen.",
+    "Privacy requirement for admin views: only super_admin may see phone/email; helper admins and users must not see phone/email (enforced in UI; security rules explicitly deferred).",
+    "Scope constraints: do not build admin dashboard yet; do not build Firestore/Firebase security rules yet; focus only on correct signup flow."
   ],
   "known_issues": [],
   "isFixRequest": false,
-  "existing_features": [
-    {
-      "id": "feature-update-post-login-redirect-logic-so-that-after-signup-login-1-if-the-firestore-user-profile-has-approved-false-navigate-to-pending-approval-2-if-approved-true-always-navigate-to-chat-for-all-roles-including-admin-and-super-admin-and-do-not-auto-redirect-any-admin-super-admin-to-users-or-any-admin-page",
-      "title": "Update post-login redirect logic so that after signup/login: (1) if the Firestore user profile has approved == false, navigate to /pending-approval; (2) if approved == true, ALWAYS navigate to /chat for all roles including admin and super_admin, and do not auto-redirect any admin/super_admin to /users or any admin page.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-chat-the-default-landing-screen-for-all-approved-users-and-implement-the-chat-home-empty-state-with-the-exact-user-facing-text-start-a-conversation-tap-to-find-users-and-a-bottom-right-floating-action-button-fab-with-a-plus-new-chat-icon-that-navigates-to-users-when-clicked",
-      "title": "Make /chat the default landing screen for all approved users and implement the Chat Home empty state with the exact user-facing text: \"Start a conversation. Tap + to find users.\" and a bottom-right Floating Action Button (FAB) with a plus/new-chat icon that navigates to /users when clicked.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-change-users-to-be-a-single-user-list-experience-for-all-roles-that-lists-all-approved-users-normal-admin-and-super-admin-including-the-currently-logged-in-user-do-not-exclude-self-each-row-must-show-the-user-s-profile-photo-name-and-may-show-a-small-optional-role-badge",
-      "title": "Change /users to be a single \"User List\" experience for all roles that lists ALL approved users (normal, admin, and super_admin), including the currently logged-in user (do not exclude self). Each row must show the user's profile photo, name, and may show a small optional role badge.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-the-chat-request-ux-logic-on-users-so-that-tapping-a-user-row-does-not-open-a-chat-directly-instead-it-reveals-a-send-chat-request-action-and-sending-creates-a-chat-request-record-with-fields-fromuid-touid-status-pending-createdat-preserve-existing-naming-conventions-in-firestore-but-ensure-these-exact-semantics-and-values",
-      "title": "Implement the chat request UX logic on /users so that tapping a user row does NOT open a chat directly; instead it reveals a \"Send Chat Request\" action, and sending creates a chat_request record with fields { fromUid, toUid, status: \"pending\", createdAt } (preserve existing naming conventions in Firestore, but ensure these exact semantics and values).",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-request-handling-so-the-receiver-is-notified-in-the-ui-of-incoming-pending-chat-requests-can-accept-or-reject-and-accept-creates-a-1-to-1-chat-thread-accessible-to-both-users-reject-does-not-create-a-chat-thread-ensure-chat-becomes-enabled-visible-for-both-users-only-after-acceptance",
-      "title": "Implement request handling so the receiver is notified in the UI of incoming pending chat requests, can Accept or Reject, and: Accept creates a 1-to-1 chat thread accessible to both users; Reject does not create a chat thread. Ensure chat becomes enabled/visible for both users only after acceptance.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-separate-admin-access-from-the-normal-chat-flow-normal-users-must-not-see-any-admin-dashboard-features-admin-dashboard-must-be-accessible-only-via-the-header-profile-dropdown-item-labeled-admin-dashboard-and-only-visible-to-admin-super-admin-users-admin-features-must-never-change-the-post-login-redirect-flow-or-the-default-chat-landing-behavior",
-      "title": "Separate admin access from the normal chat flow: normal users must not see any admin dashboard/features; admin dashboard must be accessible only via the header profile dropdown item labeled \"Admin Dashboard\" and only visible to admin/super_admin users. Admin features must never change the post-login redirect flow or the default /chat landing behavior.",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-role-identity-semantics-treat-super-admin-as-both-an-admin-and-a-normal-user-for-product-behavior-meaning-super-admin-users-and-admins-must-be-included-in-the-approved-user-list-and-have-access-to-normal-chat-flow-normal-users-must-not-gain-any-admin-only-capabilities",
-      "title": "Ensure role/identity semantics: treat super_admin as BOTH an admin and a normal user for product behavior, meaning super_admin users (and admins) must be included in the approved user list and have access to normal chat flow; normal users must not gain any admin-only capabilities.",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-safety-constraints-do-not-delete-any-existing-user-documents-do-not-modify-existing-user-roles-or-approval-flags-as-part-of-this-change-preserve-and-respect-the-current-super-admin-bootstrap-logic",
-      "title": "Safety constraints: do not delete any existing user documents; do not modify existing user roles or approval flags as part of this change; preserve and respect the current super_admin bootstrap logic.",
-      "reqIds": [
-        "REQ-8"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-apply-a-cohesive-non-blue-non-purple-visual-theme-across-the-updated-chat-and-users-experiences-colors-typography-spacing-keeping-the-ui-consistent-with-the-existing-tailwind-shadcn-components-and-ensuring-the-fab-is-visually-prominent-and-accessible",
-      "title": "Apply a cohesive, non-blue/non-purple visual theme across the updated /chat and /users experiences (colors, typography, spacing), keeping the UI consistent with the existing Tailwind + shadcn components and ensuring the FAB is visually prominent and accessible.",
-      "reqIds": [
-        "REQ-9"
-      ],
-      "version": 1
-    }
-  ],
+  "existing_features": [],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Post-login redirect flow: if approved==false show Pending Approval; if approved==true always route to /chat for all roles (no admin auto-redirect).",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Chat Home page (/chat) as default landing with empty-state text and bottom-right FAB (+) to navigate to /users.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "User List page (/users) shows all approved users including admins/super_admin and including the current user; show photo, name, optional role badge.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Chat request workflow: tapping a user shows Send Chat Request; sending creates chat_request {fromUid,toUid,status:'pending',createdAt}.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Request handling: receiver notified of incoming request; can Accept/Reject; Accept creates 1:1 chat thread and enables chat; Reject creates no chat.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Admin access separation: Admin Dashboard accessible only via header profile dropdown option visible to admin/super_admin; normal users cannot see admin features; admin features do not affect chat flow.",
+      "summary": "Implement secure signup flow for Saddam Chat with required fields (photo upload, name, age, relation text, phone, email, password/confirm), create Auth user + Firestore users/{uid} doc, first-user super_admin auto-approval, and route to Pending Approval vs Chat with review messaging",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Align roles, post-login redirects, chat landing (/chat), users list (/users), chat-request flow, and admin access separation",
+  "gameProjectType": "none",
+  "projectName": "Saddam Chat",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

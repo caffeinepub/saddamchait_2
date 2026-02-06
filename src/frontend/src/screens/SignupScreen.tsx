@@ -17,6 +17,9 @@ interface SignupScreenProps {
 
 export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: SignupScreenProps) {
   const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [relation, setRelation] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -121,6 +124,25 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
       newErrors.name = 'Name is required';
     }
 
+    if (!age.trim()) {
+      newErrors.age = 'Age is required';
+    } else {
+      const ageNum = parseInt(age, 10);
+      if (isNaN(ageNum) || ageNum < 1 || ageNum > 150) {
+        newErrors.age = 'Please enter a valid age (1-150)';
+      }
+    }
+
+    if (!relation.trim()) {
+      newErrors.relation = 'Relation is required';
+    }
+
+    if (!phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!/^\+?[\d\s\-()]+$/.test(phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+
     if (!email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -156,6 +178,9 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
     try {
       const result = await signUpWithEmail(email, password, {
         name,
+        age: parseInt(age, 10),
+        relation,
+        phone,
         photoURL: profileImage?.dataUrl || '',
       });
 
@@ -265,6 +290,9 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
           <p className="text-sm text-muted-foreground">
             Create your account to get started.
           </p>
+          <p className="text-xs text-muted-foreground">
+            Your account will be reviewed before access.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -344,7 +372,7 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
+            <Label htmlFor="name">Full Name *</Label>
             <Input
               id="name"
               type="text"
@@ -357,6 +385,59 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
             />
             {errors.name && (
               <p className="text-xs text-destructive">{errors.name}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="age">Age *</Label>
+            <Input
+              id="age"
+              type="number"
+              placeholder="25"
+              value={age}
+              onChange={(e) => {
+                setAge(e.target.value);
+                setErrors((prev) => ({ ...prev, age: '' }));
+              }}
+              min="1"
+              max="150"
+            />
+            {errors.age && (
+              <p className="text-xs text-destructive">{errors.age}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="relation">Relation *</Label>
+            <Input
+              id="relation"
+              type="text"
+              placeholder="e.g., friend, relative, teacher, doctor"
+              value={relation}
+              onChange={(e) => {
+                setRelation(e.target.value);
+                setErrors((prev) => ({ ...prev, relation: '' }));
+              }}
+            />
+            {errors.relation && (
+              <p className="text-xs text-destructive">{errors.relation}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number *</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+1 234 567 8900"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setErrors((prev) => ({ ...prev, phone: '' }));
+              }}
+            />
+            {errors.phone && (
+              <p className="text-xs text-destructive">{errors.phone}</p>
             )}
           </div>
 
@@ -395,7 +476,7 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm password *</Label>
+            <Label htmlFor="confirmPassword">Confirm Password *</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -412,7 +493,7 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating Account...' : 'Signup'}
+            {isSubmitting ? 'Creating Account...' : 'Sign Up'}
           </Button>
         </form>
 

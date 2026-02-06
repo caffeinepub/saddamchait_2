@@ -6,10 +6,7 @@ import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
 import Set "mo:core/Set";
-import Migration "migration";
 
-// Add migration expression in with-clause.
-(with migration = Migration.run)
 actor {
   // New stable field for persistent admin state.
   stable var adminState = Set.empty<Principal>();
