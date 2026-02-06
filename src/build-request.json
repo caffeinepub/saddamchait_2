@@ -1,103 +1,95 @@
 {
   "kind": "build_request",
-  "title": "Fix My Profile page and header avatar to bind name/email/photoURL from Firestore users/{uid}",
+  "title": "Fix header + My Profile rendering by binding strictly to Firestore users/{uid} fields",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the existing My Profile page to display profile photo, full name, and email address strictly from the Firestore document at `users/{uid}` (fields: `photoURL`, `name`, `email`) and not from Firebase Auth user fields.",
+      "text": "Ensure the My Profile screen renders the logged-in user’s profile photo, full name, and email address by reading ONLY from Firestore document path `users/{auth.uid}` and binding ONLY to the existing Firestore field names `photoURL`, `name`, and `email` (no reads from Firebase Auth user fields for display).",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "Fix ONLY the existing \"My Profile\" page and header avatar.\n\nTASK:\nBind data correctly from Firestore.\n\nSOURCE OF TRUTH:\nFirestore document: users/{uid}\n\nFIELDS TO READ:\n- name\n- email\n- photoURL\n\nRULES:\n- Do NOT read data from Firebase Auth"
+          "- Read user data ONLY from Firestore: users/{uid}\n- Do NOT rename or mutate stored data\n- Bind UI strictly to existing Firestore field names\n...Fix ONLY:\n  • ... My Profile page (photo, name, email)"
         ]
       },
       "acceptanceCriteria": [
-        "On the My Profile page, the profile photo source is bound to `users/{uid}.photoURL` and the full name text is bound to `users/{uid}.name`.",
-        "On the My Profile page, the email address text is bound to `users/{uid}.email`.",
-        "The My Profile page does not use any Firebase Auth fields (e.g., auth user email/photo/displayName) for display values; displayed values come from Firestore profile data.",
-        "If Firestore `users/{uid}` exists, its `name/email/photoURL` values are shown on the My Profile page."
+        "When an authenticated user navigates to `/profile`, the UI displays `users/{uid}.name` and `users/{uid}.email` values from Firestore.",
+        "When `users/{uid}.photoURL` is a non-empty string, the profile avatar image uses that URL (no Firebase Auth `photoURL` is used).",
+        "No Firestore writes occur as part of rendering My Profile (no mutation/rename/backfill of stored data)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "On the My Profile page avatar, implement a deterministic fallback: if `users/{uid}.photoURL` is missing/empty, do not attempt to load an image and instead show initials derived from `users/{uid}.name`.",
+      "text": "On the My Profile screen, implement a deterministic avatar fallback based strictly on Firestore: if `users/{uid}.photoURL` is missing/empty/whitespace, do not render an image URL and instead render initials derived from `users/{uid}.name`.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "My Profile page:\n- Profile photo must load from users/{uid}.photoURL\n- Full Name text must show users/{uid}.name\n- Email Address text must show users/{uid}.email\n- If photoURL is empty, show initials from name"
+          "Expected Result:\n... My Profile → shows actual saved full name, email, and photo\n\n- Header → shows correct profile photo or initials"
         ]
       },
       "acceptanceCriteria": [
-        "When `photoURL` is an empty string or undefined, the My Profile avatar renders initials (derived from the Firestore `name`) rather than a broken/empty image.",
-        "When `photoURL` is a non-empty string, the My Profile avatar renders the image from Firestore."
+        "If `photoURL` is empty or whitespace, the AvatarImage is not attempted/used and the AvatarFallback shows initials derived from the Firestore `name`.",
+        "If Firestore `name` is present, initials are stable and derived from that value (not from Firebase Auth)."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Update the existing header (top-right avatar) to use Firestore `users/{uid}.photoURL` for the avatar image and fall back to initials derived from Firestore `users/{uid}.name` when `photoURL` is missing/empty; do not use Firebase Auth for any displayed profile fields.",
+      "text": "Fix the header’s top-right avatar and displayed header/profile-menu name so they render from Firestore `users/{uid}` only: use `photoURL` for the avatar image when present; otherwise show initials derived from Firestore `name`, and ensure the displayed name in the header/profile menu is exactly Firestore `name` (undo any incorrect name source/binding).",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "Header (top right avatar):\n- Use users/{uid}.photoURL\n- Fallback to initials from name\n\nRULES:\n- Do NOT read data from Firebase Auth"
+          "• Header avatar is NOT rendering\n• Header name was changed incorrectly without instruction\n...\nFix ONLY:\n  • Header avatar\n  • Header name"
         ]
       },
       "acceptanceCriteria": [
-        "Header avatar image source is `users/{uid}.photoURL` (from Firestore profile data).",
-        "If `photoURL` is empty/missing, the header avatar shows initials derived from Firestore `name` and does not attempt to load an empty image URL.",
-        "No header avatar display values (image/name/initials) are derived from Firebase Auth fields."
+        "When a user is logged in and `users/{uid}` exists, the header avatar uses Firestore `photoURL` if non-empty; otherwise shows initials derived from Firestore `name`.",
+        "The header/profile dropdown displays the user’s name from Firestore `users/{uid}.name` (no Firebase Auth display name/email is used for display).",
+        "No changes are made to routes/pages outside the header components and My Profile screen."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Ensure the data used by the My Profile page and header avatar is fetched from Firestore `users/{uid}` as the single source of truth (reading only `name`, `email`, `photoURL` for binding) and that the UI updates to show Firestore data whenever it exists.",
+      "text": "Verify the Firestore read is performed against the exact document path `users/{auth.uid}` with an awaited fresh server read (no cache) so UI reliably updates based on existing Firestore data; add/keep console logs sufficient to confirm the UID used and that the read is not from cache.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "SOURCE OF TRUTH:\nFirestore document: users/{uid}\n\nFIELDS TO READ:\n- name\n- email\n- photoURL\n\nIf Firestore data exists, it must display. Nothing else."
+          "Most likely causes:\n...\n3) Incorrect users/{uid} document path or missing await/subscribe"
         ]
       },
       "acceptanceCriteria": [
-        "With an existing Firestore doc `users/{uid}`, both My Profile and the header avatar display the Firestore `name/email/photoURL` values.",
-        "No routes/navigation, roles/approval logic, or UI layout/design are changed as part of this fix."
+        "Browser console shows a log indicating a Firestore fetch for the current auth UID (e.g., includes the UID used).",
+        "The profile fetch uses a fresh server read (not a cached-only read), and logs demonstrate the read is not from cache.",
+        "Header and My Profile update to show Firestore-backed values after the profile query resolves (no permanent blank state when data exists)."
       ]
     }
   ],
   "constraints": [
-    "SINGLE TASK ONLY: change only data fetching/binding for the existing My Profile page and the header (top-right avatar).",
-    "Do not modify: Signup page, Login page, Admin dashboard, User list, routes or navigation, or overall UI layout/design.",
-    "Do not read profile display data (name/email/photoURL) from Firebase Auth; Firestore `users/{uid}` is the source of truth.",
-    "Do not change roles, approval logic, or rebuild unrelated functionality."
+    "Do not rename, migrate, or mutate any stored Firestore user data.",
+    "Read user profile display fields ONLY from Firestore `users/{uid}` (fields `name`, `email`, `photoURL`); do not display profile fields from Firebase Auth.",
+    "Do not touch Signup page (`frontend/src/screens/SignupScreen.tsx`).",
+    "Do not touch Login page (`frontend/src/screens/LoginScreen.tsx`).",
+    "Do not touch any Admin dashboard/admin screens.",
+    "UI layout/design is acceptable; do not redesign or refactor unrelated UI."
   ],
   "nonGoals": [
-    "Adding new UI components or redesigning the My Profile page or header.",
-    "Changing authentication flows, signup/login behavior, route guards, routing table, or navigation.",
-    "Changing Firestore schema, security rules, or any admin/user approval logic."
+    "Adding new profile fields or editing profile data.",
+    "Changing approval/role logic, routing, or guards beyond what is strictly required to render the header/profile data.",
+    "Introducing new pages, features, or refactors unrelated to header + My Profile rendering."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

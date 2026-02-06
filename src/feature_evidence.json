@@ -2,9 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-existing-my-profile-page-to-display-profile-photo-full-name-and-email-address-strictly-from-the-firestore-document-at-users-uid-fields-photourl-name-email-and-not-from-firebase-auth-user-fields",
-      "featureTitle": "Update the existing My Profile page to display profile photo, full name, and email address strictly from the Firestore document at `users/{uid}` (fields: `photoURL`, `name`, `email`) and not from Firebase Auth user fields.",
+      "featureId": "feature-ensure-the-my-profile-screen-renders-the-logged-in-user-s-profile-photo-full-name-and-email-address-by-reading-only-from-firestore-document-path-users-auth-uid-and-binding-only-to-the-existing-firestore-field-names-photourl-name-and-email-no-reads-from-firebase-auth-user-fields-for-display",
+      "featureTitle": "Ensure the My Profile screen renders the logged-in user’s profile photo, full name, and email address by reading ONLY from Firestore document path `users/{auth.uid}` and binding ONLY to the existing Firestore field names `photoURL`, `name`, and `email` (no reads from Firebase Auth user fields for display).",
       "files": [
+        "frontend/src/hooks/useFirestoreUserProfile.ts",
         "frontend/src/screens/ProfileScreen.tsx"
       ],
       "components": [
@@ -23,8 +24,8 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-on-the-my-profile-page-avatar-implement-a-deterministic-fallback-if-users-uid-photourl-is-missing-empty-do-not-attempt-to-load-an-image-and-instead-show-initials-derived-from-users-uid-name",
-      "featureTitle": "On the My Profile page avatar, implement a deterministic fallback: if `users/{uid}.photoURL` is missing/empty, do not attempt to load an image and instead show initials derived from `users/{uid}.name`.",
+      "featureId": "feature-on-the-my-profile-screen-implement-a-deterministic-avatar-fallback-based-strictly-on-firestore-if-users-uid-photourl-is-missing-empty-whitespace-do-not-render-an-image-url-and-instead-render-initials-derived-from-users-uid-name",
+      "featureTitle": "On the My Profile screen, implement a deterministic avatar fallback based strictly on Firestore: if `users/{uid}.photoURL` is missing/empty/whitespace, do not render an image URL and instead render initials derived from `users/{uid}.name`.",
       "files": [
         "frontend/src/screens/ProfileScreen.tsx"
       ],
@@ -44,10 +45,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-update-the-existing-header-top-right-avatar-to-use-firestore-users-uid-photourl-for-the-avatar-image-and-fall-back-to-initials-derived-from-firestore-users-uid-name-when-photourl-is-missing-empty-do-not-use-firebase-auth-for-any-displayed-profile-fields",
-      "featureTitle": "Update the existing header (top-right avatar) to use Firestore `users/{uid}.photoURL` for the avatar image and fall back to initials derived from Firestore `users/{uid}.name` when `photoURL` is missing/empty; do not use Firebase Auth for any displayed profile fields.",
+      "featureId": "feature-fix-the-header-s-top-right-avatar-and-displayed-header-profile-menu-name-so-they-render-from-firestore-users-uid-only-use-photourl-for-the-avatar-image-when-present-otherwise-show-initials-derived-from-firestore-name-and-ensure-the-displayed-name-in-the-header-profile-menu-is-exactly-firestore-name-undo-any-incorrect-name-source-binding",
+      "featureTitle": "Fix the header’s top-right avatar and displayed header/profile-menu name so they render from Firestore `users/{uid}` only: use `photoURL` for the avatar image when present; otherwise show initials derived from Firestore `name`, and ensure the displayed name in the header/profile menu is exactly Firestore `name` (undo any incorrect name source/binding).",
       "files": [
-        "frontend/src/components/layout/AppHeader.tsx"
+        "frontend/src/components/layout/AppHeader.tsx",
+        "frontend/src/components/layout/ProfileMenu.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -65,11 +67,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-data-used-by-the-my-profile-page-and-header-avatar-is-fetched-from-firestore-users-uid-as-the-single-source-of-truth-reading-only-name-email-photourl-for-binding-and-that-the-ui-updates-to-show-firestore-data-whenever-it-exists",
-      "featureTitle": "Ensure the data used by the My Profile page and header avatar is fetched from Firestore `users/{uid}` as the single source of truth (reading only `name`, `email`, `photoURL` for binding) and that the UI updates to show Firestore data whenever it exists.",
+      "featureId": "feature-verify-the-firestore-read-is-performed-against-the-exact-document-path-users-auth-uid-with-an-awaited-fresh-server-read-no-cache-so-ui-reliably-updates-based-on-existing-firestore-data-add-keep-console-logs-sufficient-to-confirm-the-uid-used-and-that-the-read-is-not-from-cache",
+      "featureTitle": "Verify the Firestore read is performed against the exact document path `users/{auth.uid}` with an awaited fresh server read (no cache) so UI reliably updates based on existing Firestore data; add/keep console logs sufficient to confirm the UID used and that the read is not from cache.",
       "files": [
-        "frontend/src/components/layout/AppHeader.tsx",
-        "frontend/src/screens/ProfileScreen.tsx"
+        "frontend/src/hooks/useFirestoreUserProfile.ts",
+        "frontend/src/lib/firebase.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",

@@ -8,11 +8,19 @@ export function useFirestoreUserProfile() {
   const query = useQuery({
     queryKey: ['userProfile', authUser?.uid],
     queryFn: async () => {
-      if (!authUser) return null;
-      return getUserProfile(authUser.uid);
+      if (!authUser) {
+        console.log('useFirestoreUserProfile - No auth user, returning null');
+        return null;
+      }
+      console.log('useFirestoreUserProfile - Fetching profile for uid:', authUser.uid);
+      const profile = await getUserProfile(authUser.uid);
+      console.log('useFirestoreUserProfile - Profile fetched:', profile);
+      return profile;
     },
     enabled: !!authUser && !authLoading,
     retry: false,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
   });
 
   return {

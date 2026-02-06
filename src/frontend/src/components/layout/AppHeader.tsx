@@ -9,7 +9,10 @@ interface AppHeaderProps {
 export default function AppHeader({ onNavigate }: AppHeaderProps) {
   const { data: userProfile, isLoading } = useFirestoreUserProfile();
 
+  console.log('AppHeader - userProfile:', userProfile, 'isLoading:', isLoading);
+
   const getInitials = (name: string) => {
+    if (!name || name.trim().length === 0) return '??';
     const parts = name.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -17,7 +20,15 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
     return name.slice(0, 2).toUpperCase();
   };
 
-  const hasPhoto = userProfile?.photoURL && userProfile.photoURL.trim().length > 0;
+  const photoURL = userProfile?.photoURL?.trim() || '';
+  const hasPhoto = photoURL.length > 0;
+  const displayName = userProfile?.name || 'User';
+
+  console.log('AppHeader - Rendering with:', {
+    hasPhoto,
+    photoURL,
+    displayName
+  });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -35,8 +46,8 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
           <ProfileMenu userProfile={userProfile} onNavigate={onNavigate}>
             <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <Avatar className="h-8 w-8">
-                {hasPhoto && <AvatarImage src={userProfile.photoURL} alt={userProfile.name} />}
-                <AvatarFallback>{getInitials(userProfile.name)}</AvatarFallback>
+                {hasPhoto && <AvatarImage src={photoURL} alt={displayName} />}
+                <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
               </Avatar>
             </button>
           </ProfileMenu>

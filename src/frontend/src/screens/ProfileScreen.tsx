@@ -8,6 +8,8 @@ import { Mail, User, Shield } from 'lucide-react';
 export default function ProfileScreen() {
   const { data: userProfile, isLoading } = useFirestoreUserProfile();
 
+  console.log('ProfileScreen - userProfile:', userProfile, 'isLoading:', isLoading);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
@@ -32,6 +34,7 @@ export default function ProfileScreen() {
   }
 
   const getInitials = (name: string) => {
+    if (!name || name.trim().length === 0) return '??';
     const parts = name.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -40,7 +43,18 @@ export default function ProfileScreen() {
   };
 
   const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
-  const hasPhoto = userProfile.photoURL && userProfile.photoURL.trim().length > 0;
+  const photoURL = userProfile.photoURL?.trim() || '';
+  const hasPhoto = photoURL.length > 0;
+  const displayName = userProfile.name || 'Unknown User';
+  const displayEmail = userProfile.email || 'No email';
+
+  console.log('ProfileScreen - Rendering with:', {
+    hasPhoto,
+    photoURL,
+    displayName,
+    displayEmail,
+    role: userProfile.role
+  });
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -58,11 +72,11 @@ export default function ProfileScreen() {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                {hasPhoto && <AvatarImage src={userProfile.photoURL} alt={userProfile.name} />}
-                <AvatarFallback className="text-lg">{getInitials(userProfile.name)}</AvatarFallback>
+                {hasPhoto && <AvatarImage src={photoURL} alt={displayName} />}
+                <AvatarFallback className="text-lg">{getInitials(displayName)}</AvatarFallback>
               </Avatar>
               <div className="space-y-1">
-                <h2 className="text-2xl font-semibold">{userProfile.name}</h2>
+                <h2 className="text-2xl font-semibold">{displayName}</h2>
                 {isAdmin && (
                   <Badge variant="outline" className="capitalize">
                     {userProfile.role.replace('_', ' ')}
@@ -80,7 +94,7 @@ export default function ProfileScreen() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Full Name</p>
-                  <p className="text-base">{userProfile.name}</p>
+                  <p className="text-base">{displayName}</p>
                 </div>
               </div>
 
@@ -90,7 +104,7 @@ export default function ProfileScreen() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Email Address</p>
-                  <p className="text-base">{userProfile.email}</p>
+                  <p className="text-base">{displayEmail}</p>
                 </div>
               </div>
 

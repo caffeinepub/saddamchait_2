@@ -17,6 +17,7 @@ interface ProfileMenuProps {
     name: string;
     role: string;
     photoURL: string;
+    email: string;
   };
   onNavigate: (route: any) => void;
   children: ReactNode;
@@ -26,6 +27,9 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
   const queryClient = useQueryClient();
   const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
   const isUser = userProfile.role === 'user';
+  const displayName = userProfile.name || 'User';
+
+  console.log('ProfileMenu - Rendering with name:', displayName, 'role:', userProfile.role);
 
   const handleLogout = async () => {
     try {
@@ -53,7 +57,7 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{userProfile.name}</p>
+            <p className="text-sm font-medium leading-none">{displayName}</p>
             {!isUser && (
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="outline" className="text-xs capitalize">

@@ -158,6 +158,12 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
     const userDocRef = doc(db, 'users', uid);
     const userDoc = await getDocFromServer(userDocRef);
     
+    console.log('getUserProfile - Document snapshot metadata:', {
+      exists: userDoc.exists(),
+      fromCache: userDoc.metadata.fromCache,
+      hasPendingWrites: userDoc.metadata.hasPendingWrites
+    });
+    
     if (userDoc.exists()) {
       const data = userDoc.data();
       
@@ -173,7 +179,17 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
       const email = data.email ?? '';
       const photoURL = data.photoURL ?? '';
       
-      console.log('getUserProfile - Fresh server data retrieved for uid:', uid, 'approved:', approved, 'rejected:', rejected, 'blocked:', blocked, 'role:', role, 'fromCache:', userDoc.metadata.fromCache);
+      console.log('getUserProfile - Fresh server data retrieved:', {
+        uid,
+        name,
+        email,
+        photoURL: photoURL.substring(0, 50) + (photoURL.length > 50 ? '...' : ''),
+        approved,
+        rejected,
+        blocked,
+        role,
+        fromCache: userDoc.metadata.fromCache
+      });
       
       return {
         name,

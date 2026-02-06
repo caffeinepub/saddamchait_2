@@ -1,78 +1,83 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Bind My Profile page and header avatar display data strictly to Firestore users/{uid}",
+  "title": "Bind header + My Profile display strictly to Firestore users/{uid} (name/email/photoURL) with server-fresh reads",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Update the existing My Profile page to display photo, full name, and email strictly from Firestore users/{uid} (photoURL/name/email) rather than any Firebase Auth fields.",
+      "summary": "Render My Profile photo, full name, and email by reading only Firestore users/{auth.uid} fields photoURL/name/email (no Firebase Auth display binding) and avoid any Firestore writes during render.",
       "acceptanceCriteria": [
-        "On the My Profile page, the profile photo source is bound to `users/{uid}.photoURL` and the full name text is bound to `users/{uid}.name`.",
-        "On the My Profile page, the email address text is bound to `users/{uid}.email`.",
-        "The My Profile page does not use any Firebase Auth fields (e.g., auth user email/photo/displayName) for display values; displayed values come from Firestore profile data.",
-        "If Firestore `users/{uid}` exists, its `name/email/photoURL` values are shown on the My Profile page."
+        "When an authenticated user navigates to `/profile`, the UI displays `users/{uid}.name` and `users/{uid}.email` values from Firestore.",
+        "When `users/{uid}.photoURL` is a non-empty string, the profile avatar image uses that URL (no Firebase Auth `photoURL` is used).",
+        "No Firestore writes occur as part of rendering My Profile (no mutation/rename/backfill of stored data)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/screens/ProfileScreen.tsx",
           "operation": "modify",
-          "description": "Ensure all displayed profile values (avatar image, full name text, email text) are bound only to the Firestore-loaded `userProfile` fields (`photoURL`, `name`, `email`) returned by `useFirestoreUserProfile`, with no usage of Firebase Auth user fields for display."
+          "description": "Ensure all displayed profile fields (avatar image, full name, email) bind strictly to the Firestore-backed `userProfile.photoURL`, `userProfile.name`, and `userProfile.email` values returned from `useFirestoreUserProfile`, with no fallback to Firebase Auth user fields. Use existing shadcn-ui components (Avatar/Card/Badge/Separator) for rendering; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useFirestoreUserProfile.ts",
+          "operation": "modify",
+          "description": "Confirm the profile query reads only by `authUser.uid` (Firestore doc users/{uid}) and returns the Firestore document data for display (no Firebase Auth field mapping). Keep the hook read-only (no create/update/backfill behavior)."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Implement deterministic avatar fallback on the My Profile page: show initials from Firestore name when photoURL is missing/empty, and do not attempt to load an image in that case.",
+      "summary": "Implement deterministic avatar fallback on My Profile derived from Firestore name when Firestore photoURL is missing/empty/whitespace (do not attempt an image URL in that case).",
       "acceptanceCriteria": [
-        "When `photoURL` is an empty string or undefined, the My Profile avatar renders initials (derived from the Firestore `name`) rather than a broken/empty image.",
-        "When `photoURL` is a non-empty string, the My Profile avatar renders the image from Firestore."
+        "If `photoURL` is empty or whitespace, the AvatarImage is not attempted/used and the AvatarFallback shows initials derived from the Firestore `name`.",
+        "If Firestore `name` is present, initials are stable and derived from that value (not from Firebase Auth)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/screens/ProfileScreen.tsx",
           "operation": "modify",
-          "description": "Update the Avatar rendering to conditionally render `AvatarImage` only when `userProfile.photoURL` is a non-empty string (e.g., trimmed), otherwise render only `AvatarFallback` with initials derived from `userProfile.name`."
+          "description": "Adjust avatar rendering so `AvatarImage` is only rendered when Firestore `photoURL` is non-empty after trimming, otherwise render initials computed from Firestore `name` in `AvatarFallback`. Use the shadcn-ui Avatar component to provide the image/fallback behavior; verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Update the existing header top-right avatar to use Firestore users/{uid}.photoURL with initials fallback from Firestore users/{uid}.name; do not use Firebase Auth for displayed profile fields.",
+      "summary": "Fix header avatar + header/profile-menu name to render strictly from Firestore users/{uid}: use Firestore photoURL when present, otherwise initials from Firestore name, and display name exactly from Firestore name.",
       "acceptanceCriteria": [
-        "Header avatar image source is `users/{uid}.photoURL` (from Firestore profile data).",
-        "If `photoURL` is empty/missing, the header avatar shows initials derived from Firestore `name` and does not attempt to load an empty image URL.",
-        "No header avatar display values (image/name/initials) are derived from Firebase Auth fields."
+        "When a user is logged in and `users/{uid}` exists, the header avatar uses Firestore `photoURL` if non-empty; otherwise shows initials derived from Firestore `name`.",
+        "The header/profile dropdown displays the user’s name from Firestore `users/{uid}.name` (no Firebase Auth display name/email is used for display).",
+        "No changes are made to routes/pages outside the header components and My Profile screen."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/layout/AppHeader.tsx",
           "operation": "modify",
-          "description": "Update the header Avatar to conditionally render `AvatarImage` only when Firestore `userProfile.photoURL` is non-empty; otherwise show `AvatarFallback` initials derived from Firestore `userProfile.name`, ensuring no Firebase Auth fields are used for any displayed avatar values."
+          "description": "Ensure the header avatar uses only Firestore-backed `userProfile.photoURL` and `userProfile.name` from `useFirestoreUserProfile`, with conditional rendering to avoid attempting `AvatarImage` when `photoURL` is empty/whitespace, and initials derived from Firestore `name`. Use the shadcn-ui Avatar component for avatar UI; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/layout/ProfileMenu.tsx",
+          "operation": "modify",
+          "description": "Ensure the displayed name in the dropdown label is exactly the Firestore-backed `userProfile.name` passed from the header/profile hook and that no Firebase Auth user fields are used for display. Use existing shadcn-ui DropdownMenu components for the menu UI; verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Ensure My Profile page and header avatar fetch and bind Firestore users/{uid} as the single source of truth (reading only name/email/photoURL for binding) and update UI to show Firestore data whenever it exists, without changing routes/navigation/layout.",
+      "summary": "Verify profile reads target exact Firestore path users/{auth.uid} with awaited fresh server reads (no cache) and add/keep console logs confirming UID and non-cached read behavior for header + profile display.",
       "acceptanceCriteria": [
-        "With an existing Firestore doc `users/{uid}`, both My Profile and the header avatar display the Firestore `name/email/photoURL` values.",
-        "No routes/navigation, roles/approval logic, or UI layout/design are changed as part of this fix."
+        "Browser console shows a log indicating a Firestore fetch for the current auth UID (e.g., includes the UID used).",
+        "The profile fetch uses a fresh server read (not a cached-only read), and logs demonstrate the read is not from cache.",
+        "Header and My Profile update to show Firestore-backed values after the profile query resolves (no permanent blank state when data exists)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useFirestoreUserProfile.ts",
           "operation": "modify",
-          "description": "Confirm the hook continues to fetch the current user's Firestore document (`users/{uid}`) and return Firestore-sourced profile data to consumers, without introducing any Firebase Auth fields for display binding; keep existing routing/guards unchanged."
+          "description": "Add/keep console logging in the query function to print the current `authUser.uid` used for the Firestore read, and confirm the fetch is awaited before resolving data to UI. Ensure the hook continues to rely on the existing Firestore server-fresh read behavior (no cache-only reads) provided by the Firebase helper."
         },
         {
-          "path": "frontend/src/components/layout/AppHeader.tsx",
+          "path": "frontend/src/lib/firebase.ts",
           "operation": "modify",
-          "description": "Ensure the header continues to rely on `useFirestoreUserProfile` output for avatar binding so it reflects Firestore data whenever available, without altering navigation, route guards, or layout."
-        },
-        {
-          "path": "frontend/src/screens/ProfileScreen.tsx",
-          "operation": "modify",
-          "description": "Ensure the My Profile screen continues to rely on `useFirestoreUserProfile` output for all displayed profile values so it reflects Firestore data whenever available, without altering navigation, route guards, or layout."
+          "description": "Retain and, if needed, clarify console logs in the Firestore profile read helper to show the UID, that a server-fresh read is used, and the returned snapshot metadata indicating whether data came from cache. Ensure the read continues to target `users/{uid}` and uses an awaited server read."
         }
       ]
     }
