@@ -12,6 +12,17 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     
+    // Helper function to check if user is helper_admin
+    function isHelperAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'helper_admin';
+    }
+    
+    // Helper function to check if user is any admin (super_admin or helper_admin)
+    function isAdmin() {
+      return isSuperAdmin() || isHelperAdmin();
+    }
+    
     // Helper function to check if user is approved
     function isApproved() {
       return isAuthenticated() && 
@@ -23,14 +34,18 @@ service cloud.firestore {
       // Allow read for own profile
       allow read: if isAuthenticated() && request.auth.uid == userId;
       
-      // Allow super_admin to read all users (for user management)
-      allow read: if isSuperAdmin();
+      // Allow admins (super_admin and helper_admin) to read all users (for pending list)
+      allow read: if isAdmin();
       
       // Allow create during signup (first user becomes super_admin)
       allow create: if isAuthenticated() && request.auth.uid == userId;
       
-      // Only super_admin can update approval status
+      // Super_admin can update any field
       allow update: if isSuperAdmin();
+      
+      // Helper_admin can only update approval/rejection status (not role, phone, email)
+      allow update: if isHelperAdmin() && 
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'phone', 'email']));
       
       // Only super_admin can delete profiles
       allow delete: if isSuperAdmin();

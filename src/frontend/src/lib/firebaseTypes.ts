@@ -5,8 +5,10 @@ export interface UserProfile {
   phone: string;
   email: string;
   photoURL: string;
-  role: 'super_admin' | 'admin' | 'user';
+  role: 'super_admin' | 'helper_admin' | 'user';
   approved: boolean;
+  rejected?: boolean;
+  blocked?: boolean;
   createdAt: any; // Firestore Timestamp
 }
 

@@ -11,7 +11,7 @@ export default function AdminRouteGuard({ children, onUnauthorized }: AdminRoute
 
   useEffect(() => {
     if (!isLoading && userProfile) {
-      const isAdmin = userProfile.role === 'admin' || userProfile.role === 'super_admin';
+      const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
       if (!isAdmin) {
         onUnauthorized();
       }
@@ -29,7 +29,7 @@ export default function AdminRouteGuard({ children, onUnauthorized }: AdminRoute
     );
   }
 
-  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
+  const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'helper_admin';
 
   if (!isAdmin) {
     return null;

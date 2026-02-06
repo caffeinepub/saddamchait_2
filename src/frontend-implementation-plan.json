@@ -1,6 +1,234 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Untitled request",
-  "requirements": []
+  "title": "Admin approval dashboard with super_admin vs helper_admin role separation (frontend-only)",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Standardize role model to exactly: super_admin, helper_admin, user and remove legacy admin checks from UI logic/types.",
+      "acceptanceCriteria": [
+        "The codebase no longer uses `role === 'admin'` as the condition for admin access; admin access is based on `super_admin` or `helper_admin`.",
+        "TypeScript types that represent a user profile role include `helper_admin` and do not require an `admin` role."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/firebaseTypes.ts",
+          "operation": "modify",
+          "description": "Update `UserProfile.role` union to use exactly `super_admin | helper_admin | user` (remove legacy `admin`) and add typed fields for new moderation states used by login/admin UI (e.g., blocked/rejected indicators)."
+        },
+        {
+          "path": "frontend/src/components/auth/AdminRouteGuard.tsx",
+          "operation": "modify",
+          "description": "Replace legacy `admin` role checks with `super_admin` OR `helper_admin` role checks everywhere this guard determines admin access."
+        },
+        {
+          "path": "frontend/src/components/layout/ProfileMenu.tsx",
+          "operation": "modify",
+          "description": "Update any admin role detection and displayed role text to match the new role set (remove legacy `admin` handling)."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminDashboardScreen.tsx",
+          "operation": "modify",
+          "description": "Update dashboard admin counting logic and any role filters to stop using the legacy `admin` role and instead use `super_admin`/`helper_admin`."
+        },
+        {
+          "path": "frontend/src/components/admin/UserRowActions.tsx",
+          "operation": "modify",
+          "description": "Update action logic and role-related constants/types to remove legacy `admin` and align with new roles (`super_admin`, `helper_admin`, `user`). Use shadcn-ui DropdownMenu/AlertDialog patterns already in place. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Enforce admin route access so only super_admin/helper_admin can access /admin routes (including /admin/users), and normal users are redirected using existing unauthorized behavior.",
+      "acceptanceCriteria": [
+        "Navigating directly to `/admin/users` as a `user` does not render the page and redirects to a non-admin route (use the existing unauthorized behavior pattern).",
+        "Navigating to `/admin/users` as `super_admin` or `helper_admin` renders the admin users dashboard.",
+        "Any existing admin navigation entry points (e.g., profile menu) only appear for `super_admin`/`helper_admin`, not for `user`."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wrap all `/admin*` routes with `AdminRouteGuard` (in addition to `AuthenticatedRouteGuard`) so normal users cannot render any admin screens and are redirected via the existing unauthorized pattern."
+        },
+        {
+          "path": "frontend/src/components/auth/AdminRouteGuard.tsx",
+          "operation": "modify",
+          "description": "Ensure the guard triggers `onUnauthorized` for `user` role and only allows rendering for `super_admin`/`helper_admin`, including for direct navigation to `/admin/users`."
+        },
+        {
+          "path": "frontend/src/components/layout/ProfileMenu.tsx",
+          "operation": "modify",
+          "description": "Update conditional rendering so admin navigation entry points (e.g., Admin Dashboard link) only appear for `super_admin`/`helper_admin` and never for `user`."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Adjust /admin/users to show a Pending list sourced from Firestore users where approved == false, with an empty state when none exist.",
+      "acceptanceCriteria": [
+        "`/admin/users` displays only users with `approved === false`.",
+        "If there are no pending users, the screen shows an empty state message indicating there are no pending users.",
+        "The list data is fetched from the Firestore `users` collection (using the existing Firestore wrapper/hook pattern)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Add/adjust Firestore read capability to fetch only pending users from the `users` collection (approved == false) using the existing wrapper style (dynamic module load + Firestore query)."
+        },
+        {
+          "path": "frontend/src/hooks/useFirestorePendingUsersList.ts",
+          "operation": "create",
+          "description": "Create a React Query hook that fetches pending users (approved == false) via the Firebase wrapper, matching the existing hook pattern used elsewhere."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "operation": "modify",
+          "description": "Update `/admin/users` to render a 'Pending' list that only uses the pending-users hook (approved == false). Replace the current 'All Users' behavior and add an explicit empty state for no pending users. Use existing shadcn-ui Table/Card components. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Implement strict field-level visibility on /admin/users: super_admin sees full fields; helper_admin sees limited fields only, with no sensitive columns or role/delete controls.",
+      "acceptanceCriteria": [
+        "When logged in as `helper_admin`, the users table does not render phone, email, or role columns/values anywhere on the page.",
+        "When logged in as `helper_admin`, there is no UI control to change a user role and no UI control to delete a user.",
+        "When logged in as `super_admin`, all specified fields (including phone, email, role) are visible in the pending list.",
+        "Approval status is visible to both admin roles."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "operation": "modify",
+          "description": "Render different table columns/fields based on the current admin role: helper_admin shows only profile photo, name, age, relation, approval status; super_admin additionally shows phone, email, role. Ensure helper_admin never sees phone/email/role values anywhere in this screen. Use existing shadcn-ui Table/Badge/Avatar components. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/admin/UserRowActions.tsx",
+          "operation": "modify",
+          "description": "Adjust action rendering to ensure helper_admin never gets role-change or delete-related UI controls; keep action menu consistent with existing shadcn-ui DropdownMenu/AlertDialog patterns. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Implement pending-user admin actions with strict role separation: super_admin can approve/reject/block/promote to helper_admin; helper_admin can only approve/reject; no delete functionality.",
+      "acceptanceCriteria": [
+        "As `super_admin`, each pending user row offers actions: Approve, Reject, Block, Promote to helper_admin (with confirmation dialogs consistent with existing patterns).",
+        "As `helper_admin`, each pending user row offers only: Approve and Reject.",
+        "Attempting to trigger role updates as `helper_admin` is not possible via the UI (no action items rendered).",
+        "No delete-user functionality is added as part of this change."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/admin/UserRowActions.tsx",
+          "operation": "modify",
+          "description": "Update the action menu to: (1) always support Approve/Reject for both admin roles on pending users, (2) show Block + Promote-to-helper_admin only for super_admin, and (3) remove any legacy admin promote/demote actions. Keep confirmations via shadcn-ui AlertDialog. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useFirestorePendingUsersList.ts",
+          "operation": "modify",
+          "description": "Add mutations for approve/reject for helper_admin and approve/reject/block/promote for super_admin. Include client-side role checks to prevent calling role-changing mutations when current role is helper_admin (defense-in-depth; Firestore rules will still enforce)."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "operation": "modify",
+          "description": "Wire the per-row actions to the pending-users hook mutations and pass down the current admin role so the actions component can strictly render only allowed actions."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Persist approval/rejection/block state in Firestore and keep signup flow intact; approval sets approved=true, rejection keeps approved=false with rejected indicator, block sets blocked indicator.",
+      "acceptanceCriteria": [
+        "Approving a pending user updates the Firestore user document so that subsequent logins route to `/chat` via the existing redirect logic.",
+        "Rejecting a pending user leaves `approved === false` and sets a dedicated rejected indicator in Firestore (so the client can distinguish pending vs rejected).",
+        "Blocking a user sets a dedicated blocked indicator in Firestore (independent of `approved`).",
+        "No changes are made to the signup flow behavior; newly created non-first users remain unapproved by default."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Add/adjust Firestore write capabilities to: set approved=true on approval; set rejected indicator while keeping approved=false on rejection; set blocked indicator on block; and set role=helper_admin on promotion (super_admin only). Do not change the signup flow logic that sets first-user bootstrap role/approved defaults."
+        },
+        {
+          "path": "frontend/src/lib/firebaseTypes.ts",
+          "operation": "modify",
+          "description": "Extend the Firestore user profile type to include the new persisted moderation fields used by login/admin UI (rejected and blocked indicators) without altering signup-required fields."
+        },
+        {
+          "path": "frontend/src/hooks/useFirestorePendingUsersList.ts",
+          "operation": "modify",
+          "description": "Update mutations to call the new Firebase wrapper methods so approve/reject/block/promote persist correctly to Firestore."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Update login flow to show exact 'Rejected by admin' message for rejected users and block blocked users with a clear English message; preserve existing pending/approved routing.",
+      "acceptanceCriteria": [
+        "If a user profile is marked rejected, the Login screen shows the exact string “Rejected by admin” and does not navigate into the app.",
+        "If a user profile is marked blocked, the Login screen shows an English blocked message and does not navigate into the app.",
+        "If a user is unapproved and not rejected, the app follows the existing behavior (routes to `/pending-approval`).",
+        "If a user is approved, the app routes to `/chat` using the existing redirect helper."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/postLoginRedirect.ts",
+          "operation": "modify",
+          "description": "Extend the redirect decision helper to account for blocked/rejected flags before approved/pending routing, so LoginScreen can reliably decide whether to stop or navigate."
+        },
+        {
+          "path": "frontend/src/screens/LoginScreen.tsx",
+          "operation": "modify",
+          "description": "After fetching the Firestore profile, detect rejected and blocked states: (1) show exact error text 'Rejected by admin' for rejected users and prevent navigation, (2) show a clear English blocked message for blocked users and prevent navigation, (3) otherwise preserve existing pending/approved routing behavior. Ensure the UI remains on the login screen when blocked/rejected."
+        },
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Ensure `getUserProfile` reads the new rejected/blocked indicators so login can distinguish pending vs rejected vs blocked using fresh server reads (keep existing fresh-read behavior)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "summary": "Update Firestore security rules to support helper_admin: read pending users and update only minimal approve/reject fields; super_admin retains full privileged updates including role changes/deletes.",
+      "acceptanceCriteria": [
+        "A `helper_admin` can successfully load the pending users list from Firestore without permission errors.",
+        "A `helper_admin` can update approval/rejection status for a user but cannot update `role`, `phone`, or `email` fields per Firestore rules.",
+        "A `super_admin` can update approval/rejection/block status and can promote a user to `helper_admin`.",
+        "A normal `user` still cannot read other users’ profiles and cannot access admin capabilities."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/firestore.rules",
+          "operation": "modify",
+          "description": "Add helper_admin role support: allow helper_admin to read users as needed for `/admin/users`; allow helper_admin updates restricted to minimal moderation fields (approve/reject only) while explicitly disallowing updates to role/phone/email; keep super_admin as the only role that can update roles, perform privileged updates, delete users, and manage block status."
+        }
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "summary": "Ensure role privacy in non-admin UI: do not expose super_admin vs helper_admin to normal users while keeping internal labels on admin screens as needed.",
+      "acceptanceCriteria": [
+        "In non-admin UI surfaces (e.g., the profile menu), normal users do not see labels that reveal `super_admin` or `helper_admin`.",
+        "Admin-only screens may show internal role labels as needed, but normal users cannot infer which admins are `super_admin` vs `helper_admin` from the standard user experience."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/layout/ProfileMenu.tsx",
+          "operation": "modify",
+          "description": "Hide any role badge/labeling for normal users in the non-admin UI (e.g., do not render role text when `role === 'user'`). Only show internal role labeling when the current user is an admin (super_admin/helper_admin). Use existing shadcn-ui Badge and DropdownMenu components. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/screens/ProfileScreen.tsx",
+          "operation": "modify",
+          "description": "Ensure profile screen role labeling does not introduce leakage for normal users; keep role details visible for admins, but avoid presenting admin-role distinctions on user-facing surfaces beyond what is necessary for the currently logged-in admin."
+        }
+      ]
+    }
+  ]
 }

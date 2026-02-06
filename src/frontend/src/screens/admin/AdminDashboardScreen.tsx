@@ -14,7 +14,7 @@ export default function AdminDashboardScreen({ onNavigate }: AdminDashboardScree
   const totalUsers = users?.length || 0;
   const approvedUsers = users?.filter(u => u.approved).length || 0;
   const pendingUsers = users?.filter(u => !u.approved).length || 0;
-  const adminUsers = users?.filter(u => u.role === 'admin' || u.role === 'super_admin').length || 0;
+  const adminUsers = users?.filter(u => u.role === 'super_admin' || u.role === 'helper_admin').length || 0;
 
   return (
     <AdminRouteGuard onUnauthorized={() => onNavigate('/chat')}>

@@ -39,6 +39,8 @@ export default function ProfileScreen() {
     return name.slice(0, 2).toUpperCase();
   };
 
+  const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="space-y-6">
@@ -60,9 +62,11 @@ export default function ProfileScreen() {
               </Avatar>
               <div className="space-y-1">
                 <h2 className="text-2xl font-semibold">{userProfile.name}</h2>
-                <Badge variant="outline" className="capitalize">
-                  {userProfile.role.replace('_', ' ')}
-                </Badge>
+                {isAdmin && (
+                  <Badge variant="outline" className="capitalize">
+                    {userProfile.role.replace('_', ' ')}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -89,15 +93,17 @@ export default function ProfileScreen() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Shield className="h-5 w-5 text-primary" />
+              {isAdmin && (
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Shield className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Account Role</p>
+                    <p className="text-base capitalize">{userProfile.role.replace('_', ' ')}</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Account Role</p>
-                  <p className="text-base capitalize">{userProfile.role.replace('_', ' ')}</p>
-                </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>

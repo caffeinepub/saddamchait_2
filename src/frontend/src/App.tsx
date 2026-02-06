@@ -14,6 +14,7 @@ import AdminReportsScreen from './screens/admin/AdminReportsScreen';
 import AdminSettingsScreen from './screens/admin/AdminSettingsScreen';
 import AppHeader from './components/layout/AppHeader';
 import AuthenticatedRouteGuard from './components/auth/AuthenticatedRouteGuard';
+import AdminRouteGuard from './components/auth/AdminRouteGuard';
 import { useFirebaseAuthUser } from './hooks/useFirebaseAuthUser';
 
 const queryClient = new QueryClient();
@@ -88,7 +89,9 @@ function AppContent() {
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
-            <AdminDashboardScreen onNavigate={navigate} />
+            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
+              <AdminDashboardScreen onNavigate={navigate} />
+            </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/users' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
@@ -96,15 +99,21 @@ function AppContent() {
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/chats' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
-            <AdminChatsScreen onNavigate={navigate} />
+            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
+              <AdminChatsScreen onNavigate={navigate} />
+            </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/reports' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
-            <AdminReportsScreen onNavigate={navigate} />
+            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
+              <AdminReportsScreen onNavigate={navigate} />
+            </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/settings' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
-            <AdminSettingsScreen onNavigate={navigate} />
+            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
+              <AdminSettingsScreen onNavigate={navigate} />
+            </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : (
           <LoginScreen 

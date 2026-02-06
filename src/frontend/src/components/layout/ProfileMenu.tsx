@@ -24,7 +24,8 @@ interface ProfileMenuProps {
 
 export default function ProfileMenu({ userProfile, onNavigate, children }: ProfileMenuProps) {
   const queryClient = useQueryClient();
-  const isAdmin = userProfile.role === 'admin' || userProfile.role === 'super_admin';
+  const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
+  const isUser = userProfile.role === 'user';
 
   const handleLogout = async () => {
     try {
@@ -53,11 +54,13 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{userProfile.name}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs capitalize">
-                {userProfile.role.replace('_', ' ')}
-              </Badge>
-            </div>
+            {!isUser && (
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className="text-xs capitalize">
+                  {userProfile.role.replace('_', ' ')}
+                </Badge>
+              </div>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

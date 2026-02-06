@@ -42,6 +42,20 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onL
           return;
         }
 
+        // Check if user is blocked
+        if (profile.blocked) {
+          setError('Your account has been blocked. Please contact support.');
+          setIsLoggingIn(false);
+          return;
+        }
+
+        // Check if user is rejected
+        if (profile.rejected) {
+          setError('Rejected by admin');
+          setIsLoggingIn(false);
+          return;
+        }
+
         // Use the shared redirect helper
         const redirectTo = getPostLoginRoute(profile);
         console.log('LoginScreen - Redirecting to:', redirectTo);

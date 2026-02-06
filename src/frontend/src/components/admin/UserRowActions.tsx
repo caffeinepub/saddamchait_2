@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserCheck, UserX, Shield, User } from 'lucide-react';
+import { MoreHorizontal, UserCheck, UserX, Ban, Shield } from 'lucide-react';
 import { useState } from 'react';
 
 interface UserRowActionsProps {
@@ -26,12 +26,16 @@ interface UserRowActionsProps {
     name: string;
     role: string;
     approved: boolean;
+    rejected?: boolean;
+    blocked?: boolean;
   };
   currentUserRole: string;
   isSuperAdmin: boolean;
+  isHelperAdmin: boolean;
   onApprove: () => void;
-  onBlock: () => void;
-  onChangeRole: (role: 'user' | 'admin') => void;
+  onReject: () => void;
+  onBlock?: () => void;
+  onPromoteToHelperAdmin?: () => void;
   isUpdating: boolean;
 }
 
@@ -39,33 +43,40 @@ export default function UserRowActions({
   user,
   currentUserRole,
   isSuperAdmin,
+  isHelperAdmin,
   onApprove,
+  onReject,
   onBlock,
-  onChangeRole,
+  onPromoteToHelperAdmin,
   isUpdating,
 }: UserRowActionsProps) {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
-  const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [targetRole, setTargetRole] = useState<'user' | 'admin'>('user');
-
-  const isSuperAdminUser = user.role === 'super_admin';
-  const isAdminUser = user.role === 'admin';
-  const canModify = !isSuperAdminUser || isSuperAdmin;
+  const [showPromoteDialog, setShowPromoteDialog] = useState(false);
 
   const handleApprove = () => {
     onApprove();
     setShowApproveDialog(false);
   };
 
+  const handleReject = () => {
+    onReject();
+    setShowRejectDialog(false);
+  };
+
   const handleBlock = () => {
-    onBlock();
+    if (onBlock) {
+      onBlock();
+    }
     setShowBlockDialog(false);
   };
 
-  const handleChangeRole = () => {
-    onChangeRole(targetRole);
-    setShowRoleDialog(false);
+  const handlePromote = () => {
+    if (onPromoteToHelperAdmin) {
+      onPromoteToHelperAdmin();
+    }
+    setShowPromoteDialog(false);
   };
 
   return (
@@ -80,43 +91,28 @@ export default function UserRowActions({
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
           
-          {!user.approved && canModify && (
-            <DropdownMenuItem onClick={() => setShowApproveDialog(true)}>
-              <UserCheck className="mr-2 h-4 w-4" />
-              Approve User
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem onClick={() => setShowApproveDialog(true)}>
+            <UserCheck className="mr-2 h-4 w-4" />
+            Approve User
+          </DropdownMenuItem>
           
-          {user.approved && canModify && (
-            <DropdownMenuItem onClick={() => setShowBlockDialog(true)}>
-              <UserX className="mr-2 h-4 w-4" />
-              Block User
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem onClick={() => setShowRejectDialog(true)}>
+            <UserX className="mr-2 h-4 w-4" />
+            Reject User
+          </DropdownMenuItem>
           
-          {!isSuperAdminUser && canModify && (
+          {isSuperAdmin && (
             <>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowBlockDialog(true)}>
+                <Ban className="mr-2 h-4 w-4" />
+                Block User
+              </DropdownMenuItem>
+              
               {user.role === 'user' && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    setTargetRole('admin');
-                    setShowRoleDialog(true);
-                  }}
-                >
+                <DropdownMenuItem onClick={() => setShowPromoteDialog(true)}>
                   <Shield className="mr-2 h-4 w-4" />
-                  Promote to Admin
-                </DropdownMenuItem>
-              )}
-              {isAdminUser && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    setTargetRole('user');
-                    setShowRoleDialog(true);
-                  }}
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Demote to User
+                  Promote to Helper Admin
                 </DropdownMenuItem>
               )}
             </>
@@ -139,37 +135,58 @@ export default function UserRowActions({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Block User</AlertDialogTitle>
+            <AlertDialogTitle>Reject User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to block {user.name}? They will no longer be able to log in.
+              Are you sure you want to reject {user.name}? They will see a rejection message when trying to log in.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBlock} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Block
+            <AlertDialogAction onClick={handleReject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Reject
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Change User Role</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to change {user.name}'s role to {targetRole}?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleChangeRole}>Change Role</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {isSuperAdmin && (
+        <>
+          <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Block User</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to block {user.name}? They will be permanently blocked from accessing the application.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBlock} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Block
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={showPromoteDialog} onOpenChange={setShowPromoteDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Promote to Helper Admin</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to promote {user.name} to Helper Admin? They will be able to approve and reject users, but cannot modify roles or access sensitive information.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePromote}>Promote</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </>
   );
 }

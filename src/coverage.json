@@ -1,25 +1,166 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T00:54:11.728Z",
+  "generatedAt": "2026-02-06T01:10:26.337Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 0,
-    "implemented": 0,
-    "items": []
+    "total": 9,
+    "implemented": 9,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Update the role model to use exactly these roles everywhere the app checks or displays role: `super_admin`, `helper_admin`, `user` (remove/stop using the legacy `admin` role in UI logic and guards).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/firebaseTypes.ts",
+          "frontend/src/components/auth/AdminRouteGuard.tsx",
+          "frontend/src/components/layout/ProfileMenu.tsx",
+          "frontend/src/screens/admin/AdminDashboardScreen.tsx",
+          "frontend/src/components/admin/UserRowActions.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/firebaseTypes.ts",
+          "frontend/src/components/auth/AdminRouteGuard.tsx",
+          "frontend/src/components/layout/ProfileMenu.tsx",
+          "frontend/src/screens/admin/AdminDashboardScreen.tsx",
+          "frontend/src/components/admin/UserRowActions.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Enforce admin-route access rules so that only `super_admin` and `helper_admin` can access `/admin/users`, and normal users cannot access any admin routes.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/App.tsx",
+          "frontend/src/components/auth/AdminRouteGuard.tsx",
+          "frontend/src/components/layout/ProfileMenu.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/App.tsx",
+          "frontend/src/components/auth/AdminRouteGuard.tsx",
+          "frontend/src/components/layout/ProfileMenu.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Create/adjust the Admin Users Dashboard at route `/admin/users` to show a **Pending** list that only includes Firestore `users` documents where `approved == false` (do not show already-approved users in this list).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/hooks/useFirestorePendingUsersList.ts",
+          "frontend/src/screens/admin/AdminUsersScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/hooks/useFirestorePendingUsersList.ts",
+          "frontend/src/screens/admin/AdminUsersScreen.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Implement strict field-level visibility on `/admin/users`:\n- `super_admin` can see: profile photo, name, age, relation, phone number, email, role, approval status\n- `helper_admin` can see ONLY: profile photo, name, age, relation, approval status\n- `helper_admin` must not see: phone number, email, role-change options, delete options",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "frontend/src/components/admin/UserRowActions.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "frontend/src/components/admin/UserRowActions.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Implement admin actions on pending users with strict role separation:\n- `super_admin`: Approve user, Reject user, Block user, Promote user to `helper_admin`\n- `helper_admin`: Approve user, Reject user\nAlso ensure the UI does not expose disallowed actions to `helper_admin` and does not allow `helper_admin` to execute role changes or deletion via any client-side path.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/admin/UserRowActions.tsx",
+          "frontend/src/hooks/useFirestorePendingUsersList.ts",
+          "frontend/src/screens/admin/AdminUsersScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/admin/UserRowActions.tsx",
+          "frontend/src/hooks/useFirestorePendingUsersList.ts",
+          "frontend/src/screens/admin/AdminUsersScreen.tsx"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Persist approval/rejection/block state in Firestore so login behavior matches requirements:\n- On approval: set `approved = true`\n- On rejection: keep `approved = false` and store a rejection flag/status so the app can show “Rejected by admin” on login\n- On block: store a block flag/status so the app can prevent login access and show an appropriate message\nKeep existing signup flow intact (do not change signup logic).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/lib/firebaseTypes.ts",
+          "frontend/src/hooks/useFirestorePendingUsersList.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/lib/firebaseTypes.ts",
+          "frontend/src/hooks/useFirestorePendingUsersList.ts"
+        ]
+      },
+      {
+        "id": "REQ-7",
+        "summary": "Update the login flow to display the exact message “Rejected by admin” when a user attempts to log in and their Firestore profile indicates they were rejected (while still unapproved). Also prevent blocked users from proceeding past login with a clear English message.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/postLoginRedirect.ts",
+          "frontend/src/screens/LoginScreen.tsx",
+          "frontend/src/lib/firebase.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/postLoginRedirect.ts",
+          "frontend/src/screens/LoginScreen.tsx",
+          "frontend/src/lib/firebase.ts"
+        ]
+      },
+      {
+        "id": "REQ-8",
+        "summary": "Update Firestore security rules (`frontend/firestore.rules`) to support the new `helper_admin` role:\n- Allow `helper_admin` to read the users collection as needed for `/admin/users`\n- Allow `helper_admin` to update only the minimal fields needed to approve/reject (and never role/phone/email)\n- Keep `super_admin` as the only role that can update roles, delete users, or perform privileged updates",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/firestore.rules"
+        ],
+        "matchedFiles": [
+          "frontend/firestore.rules"
+        ]
+      },
+      {
+        "id": "REQ-9",
+        "summary": "Ensure role privacy in the UI: clearly label roles internally for admins, but do not expose whether any admin is `super_admin` vs `helper_admin` to normal users anywhere in the non-admin UI.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/layout/ProfileMenu.tsx",
+          "frontend/src/screens/ProfileScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/layout/ProfileMenu.tsx",
+          "frontend/src/screens/ProfileScreen.tsx"
+        ]
+      }
+    ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/firestore.rules",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/UserRowActions.tsx",
+    "frontend/src/components/auth/AdminRouteGuard.tsx",
+    "frontend/src/components/layout/ProfileMenu.tsx",
+    "frontend/src/hooks/useFirestorePendingUsersList.ts",
     "frontend/src/lib/firebase.ts",
     "frontend/src/lib/firebaseTypes.ts",
-    "frontend/src/screens/SignupScreen.tsx",
+    "frontend/src/lib/postLoginRedirect.ts",
+    "frontend/src/screens/LoginScreen.tsx",
+    "frontend/src/screens/ProfileScreen.tsx",
+    "frontend/src/screens/admin/AdminDashboardScreen.tsx",
+    "frontend/src/screens/admin/AdminUsersScreen.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

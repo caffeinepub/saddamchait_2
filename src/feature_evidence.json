@@ -1,4 +1,210 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-update-the-role-model-to-use-exactly-these-roles-everywhere-the-app-checks-or-displays-role-super-admin-helper-admin-user-remove-stop-using-the-legacy-admin-role-in-ui-logic-and-guards",
+      "featureTitle": "Update the role model to use exactly these roles everywhere the app checks or displays role: `super_admin`, `helper_admin`, `user` (remove/stop using the legacy `admin` role in UI logic and guards).",
+      "files": [
+        "frontend/src/components/admin/UserRowActions.tsx",
+        "frontend/src/components/auth/AdminRouteGuard.tsx",
+        "frontend/src/components/layout/ProfileMenu.tsx",
+        "frontend/src/lib/firebaseTypes.ts",
+        "frontend/src/screens/admin/AdminDashboardScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-enforce-admin-route-access-rules-so-that-only-super-admin-and-helper-admin-can-access-admin-users-and-normal-users-cannot-access-any-admin-routes",
+      "featureTitle": "Enforce admin-route access rules so that only `super_admin` and `helper_admin` can access `/admin/users`, and normal users cannot access any admin routes.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/auth/AdminRouteGuard.tsx",
+        "frontend/src/components/layout/ProfileMenu.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-adjust-the-admin-users-dashboard-at-route-admin-users-to-show-a-pending-list-that-only-includes-firestore-users-documents-where-approved-false-do-not-show-already-approved-users-in-this-list",
+      "featureTitle": "Create/adjust the Admin Users Dashboard at route `/admin/users` to show a **Pending** list that only includes Firestore `users` documents where `approved == false` (do not show already-approved users in this list).",
+      "files": [
+        "frontend/src/hooks/useFirestorePendingUsersList.ts",
+        "frontend/src/lib/firebase.ts",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-strict-field-level-visibility-on-admin-users-super-admin-can-see-profile-photo-name-age-relation-phone-number-email-role-approval-status-helper-admin-can-see-only-profile-photo-name-age-relation-approval-status-helper-admin-must-not-see-phone-number-email-role-change-options-delete-options",
+      "featureTitle": "Implement strict field-level visibility on `/admin/users`:\n- `super_admin` can see: profile photo, name, age, relation, phone number, email, role, approval status\n- `helper_admin` can see ONLY: profile photo, name, age, relation, approval status\n- `helper_admin` must not see: phone number, email, role-change options, delete options",
+      "files": [
+        "frontend/src/components/admin/UserRowActions.tsx",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-admin-actions-on-pending-users-with-strict-role-separation-super-admin-approve-user-reject-user-block-user-promote-user-to-helper-admin-helper-admin-approve-user-reject-user-also-ensure-the-ui-does-not-expose-disallowed-actions-to-helper-admin-and-does-not-allow-helper-admin-to-execute-role-changes-or-deletion-via-any-client-side-path",
+      "featureTitle": "Implement admin actions on pending users with strict role separation:\n- `super_admin`: Approve user, Reject user, Block user, Promote user to `helper_admin`\n- `helper_admin`: Approve user, Reject user\nAlso ensure the UI does not expose disallowed actions to `helper_admin` and does not allow `helper_admin` to execute role changes or deletion via any client-side path.",
+      "files": [
+        "frontend/src/components/admin/UserRowActions.tsx",
+        "frontend/src/hooks/useFirestorePendingUsersList.ts",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-persist-approval-rejection-block-state-in-firestore-so-login-behavior-matches-requirements-on-approval-set-approved-true-on-rejection-keep-approved-false-and-store-a-rejection-flag-status-so-the-app-can-show-rejected-by-admin-on-login-on-block-store-a-block-flag-status-so-the-app-can-prevent-login-access-and-show-an-appropriate-message-keep-existing-signup-flow-intact-do-not-change-signup-logic",
+      "featureTitle": "Persist approval/rejection/block state in Firestore so login behavior matches requirements:\n- On approval: set `approved = true`\n- On rejection: keep `approved = false` and store a rejection flag/status so the app can show “Rejected by admin” on login\n- On block: store a block flag/status so the app can prevent login access and show an appropriate message\nKeep existing signup flow intact (do not change signup logic).",
+      "files": [
+        "frontend/src/hooks/useFirestorePendingUsersList.ts",
+        "frontend/src/lib/firebase.ts",
+        "frontend/src/lib/firebaseTypes.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-login-flow-to-display-the-exact-message-rejected-by-admin-when-a-user-attempts-to-log-in-and-their-firestore-profile-indicates-they-were-rejected-while-still-unapproved-also-prevent-blocked-users-from-proceeding-past-login-with-a-clear-english-message",
+      "featureTitle": "Update the login flow to display the exact message “Rejected by admin” when a user attempts to log in and their Firestore profile indicates they were rejected (while still unapproved). Also prevent blocked users from proceeding past login with a clear English message.",
+      "files": [
+        "frontend/src/lib/firebase.ts",
+        "frontend/src/lib/postLoginRedirect.ts",
+        "frontend/src/screens/LoginScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-firestore-security-rules-frontend-firestore-rules-to-support-the-new-helper-admin-role-allow-helper-admin-to-read-the-users-collection-as-needed-for-admin-users-allow-helper-admin-to-update-only-the-minimal-fields-needed-to-approve-reject-and-never-role-phone-email-keep-super-admin-as-the-only-role-that-can-update-roles-delete-users-or-perform-privileged-updates",
+      "featureTitle": "Update Firestore security rules (`frontend/firestore.rules`) to support the new `helper_admin` role:\n- Allow `helper_admin` to read the users collection as needed for `/admin/users`\n- Allow `helper_admin` to update only the minimal fields needed to approve/reject (and never role/phone/email)\n- Keep `super_admin` as the only role that can update roles, delete users, or perform privileged updates",
+      "files": [
+        "frontend/firestore.rules"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-8"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-role-privacy-in-the-ui-clearly-label-roles-internally-for-admins-but-do-not-expose-whether-any-admin-is-super-admin-vs-helper-admin-to-normal-users-anywhere-in-the-non-admin-ui",
+      "featureTitle": "Ensure role privacy in the UI: clearly label roles internally for admins, but do not expose whether any admin is `super_admin` vs `helper_admin` to normal users anywhere in the non-admin UI.",
+      "files": [
+        "frontend/src/components/layout/ProfileMenu.tsx",
+        "frontend/src/screens/ProfileScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-9"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

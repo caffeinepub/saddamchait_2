@@ -135,6 +135,8 @@ export async function createUserProfile(
     photoURL: profileData.photoURL,
     role,
     approved,
+    rejected: false,
+    blocked: false,
     createdAt: serverTimestamp(),
   });
 
@@ -142,7 +144,7 @@ export async function createUserProfile(
 }
 
 // Helper: Get user profile from Firestore with FRESH server read (no cache)
-export async function getUserProfile(uid: string): Promise<{ name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean } | null> {
+export async function getUserProfile(uid: string): Promise<{ name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean } | null> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -161,6 +163,8 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
       
       // Explicitly check approved field - must be exactly true (boolean)
       const approved = data.approved === true;
+      const rejected = data.rejected === true;
+      const blocked = data.blocked === true;
       const role = data.role ?? 'user';
       const name = data.name ?? '';
       const age = data.age ?? 0;
@@ -169,7 +173,7 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
       const email = data.email ?? '';
       const photoURL = data.photoURL ?? '';
       
-      console.log('getUserProfile - Fresh server data retrieved for uid:', uid, 'approved:', approved, 'role:', role, 'fromCache:', userDoc.metadata.fromCache);
+      console.log('getUserProfile - Fresh server data retrieved for uid:', uid, 'approved:', approved, 'rejected:', rejected, 'blocked:', blocked, 'role:', role, 'fromCache:', userDoc.metadata.fromCache);
       
       return {
         name,
@@ -179,6 +183,8 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
         email,
         photoURL,
         approved,
+        rejected,
+        blocked,
         role,
       };
     }
@@ -192,7 +198,7 @@ export async function getUserProfile(uid: string): Promise<{ name: string; age: 
 }
 
 // Helper: Get all users (admin only)
-export async function getAllUsers(): Promise<Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; createdAt: any }>> {
+export async function getAllUsers(): Promise<Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }>> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -203,7 +209,7 @@ export async function getAllUsers(): Promise<Array<{ uid: string; name: string; 
     const usersRef = collection(db, 'users');
     const snapshot = await getDocs(usersRef);
     
-    const users: Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; createdAt: any }> = [];
+    const users: Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
       users.push({
@@ -216,6 +222,8 @@ export async function getAllUsers(): Promise<Array<{ uid: string; name: string; 
         photoURL: data.photoURL ?? '',
         role: data.role ?? 'user',
         approved: data.approved === true,
+        rejected: data.rejected === true,
+        blocked: data.blocked === true,
         createdAt: data.createdAt,
       });
     });
@@ -223,6 +231,45 @@ export async function getAllUsers(): Promise<Array<{ uid: string; name: string; 
     return users;
   } catch (error) {
     console.error('getAllUsers - Error fetching users:', error);
+    return [];
+  }
+}
+
+// Helper: Get pending users (approved === false)
+export async function getPendingUsers(): Promise<Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }>> {
+  try {
+    await waitForFirebase();
+    const db = getDb();
+    
+    const modules = await loadFirebaseModules();
+    const { collection, query, where, getDocs } = modules.firestore;
+    
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('approved', '==', false));
+    const snapshot = await getDocs(q);
+    
+    const users: Array<{ uid: string; name: string; age: number; relation: string; phone: string; email: string; photoURL: string; role: string; approved: boolean; rejected?: boolean; blocked?: boolean; createdAt: any }> = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      users.push({
+        uid: doc.id,
+        name: data.name ?? '',
+        age: data.age ?? 0,
+        relation: data.relation ?? '',
+        phone: data.phone ?? '',
+        email: data.email ?? '',
+        photoURL: data.photoURL ?? '',
+        role: data.role ?? 'user',
+        approved: false,
+        rejected: data.rejected === true,
+        blocked: data.blocked === true,
+        createdAt: data.createdAt,
+      });
+    });
+    
+    return users;
+  } catch (error) {
+    console.error('getPendingUsers - Error fetching pending users:', error);
     return [];
   }
 }
@@ -260,7 +307,74 @@ export async function getApprovedUsers(currentUid: string): Promise<Array<{ uid:
   }
 }
 
-// Helper: Update user approval status (admin only)
+// Helper: Approve user (set approved = true, rejected = false)
+export async function approveUser(uid: string): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, updateDoc } = modules.firestore;
+  
+  const userDocRef = doc(db, 'users', uid);
+  await updateDoc(userDocRef, { 
+    approved: true,
+    rejected: false,
+  });
+  
+  console.log('approveUser - Approved user uid:', uid);
+}
+
+// Helper: Reject user (set rejected = true, keep approved = false)
+export async function rejectUser(uid: string): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, updateDoc } = modules.firestore;
+  
+  const userDocRef = doc(db, 'users', uid);
+  await updateDoc(userDocRef, { 
+    rejected: true,
+    approved: false,
+  });
+  
+  console.log('rejectUser - Rejected user uid:', uid);
+}
+
+// Helper: Block user (set blocked = true)
+export async function blockUser(uid: string): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, updateDoc } = modules.firestore;
+  
+  const userDocRef = doc(db, 'users', uid);
+  await updateDoc(userDocRef, { 
+    blocked: true,
+    approved: false,
+  });
+  
+  console.log('blockUser - Blocked user uid:', uid);
+}
+
+// Helper: Promote user to helper_admin (super_admin only)
+export async function promoteToHelperAdmin(uid: string): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, updateDoc } = modules.firestore;
+  
+  const userDocRef = doc(db, 'users', uid);
+  await updateDoc(userDocRef, { 
+    role: 'helper_admin',
+  });
+  
+  console.log('promoteToHelperAdmin - Promoted user uid:', uid, 'to helper_admin');
+}
+
+// Helper: Update user approval status (admin only) - DEPRECATED, use specific functions
 export async function updateUserApproval(uid: string, approved: boolean): Promise<void> {
   await waitForFirebase();
   const db = getDb();
@@ -274,7 +388,7 @@ export async function updateUserApproval(uid: string, approved: boolean): Promis
   console.log('updateUserApproval - Updated approval for uid:', uid, 'approved:', approved);
 }
 
-// Helper: Update user role (admin only)
+// Helper: Update user role (admin only) - DEPRECATED for new roles
 export async function updateUserRole(uid: string, role: 'user' | 'admin'): Promise<void> {
   await waitForFirebase();
   const db = getDb();

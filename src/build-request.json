@@ -1,12 +1,200 @@
 {
   "kind": "build_request",
-  "title": "Untitled request",
+  "title": "Admin approval dashboard with super_admin vs helper_admin role separation",
   "priority": "normal",
-  "requirements": [],
-  "constraints": [],
-  "nonGoals": [],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Update the role model to use exactly these roles everywhere the app checks or displays role: `super_admin`, `helper_admin`, `user` (remove/stop using the legacy `admin` role in UI logic and guards).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Roles:\n- super_admin\n- helper_admin\n- user"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The codebase no longer uses `role === 'admin'` as the condition for admin access; admin access is based on `super_admin` or `helper_admin`.",
+        "TypeScript types that represent a user profile role include `helper_admin` and do not require an `admin` role."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Enforce admin-route access rules so that only `super_admin` and `helper_admin` can access `/admin/users`, and normal users cannot access any admin routes.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Access rules:\n- Only super_admin and helper_admin can access /admin/users\n- Normal users cannot access admin routes"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Navigating directly to `/admin/users` as a `user` does not render the page and redirects to a non-admin route (use the existing unauthorized behavior pattern).",
+        "Navigating to `/admin/users` as `super_admin` or `helper_admin` renders the admin users dashboard.",
+        "Any existing admin navigation entry points (e.g., profile menu) only appear for `super_admin`/`helper_admin`, not for `user`."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Create/adjust the Admin Users Dashboard at route `/admin/users` to show a **Pending** list that only includes Firestore `users` documents where `approved == false` (do not show already-approved users in this list).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Create an Admin Users Dashboard at /admin/users.",
+          "Show only users where approved = false in Pending list"
+        ]
+      },
+      "acceptanceCriteria": [
+        "`/admin/users` displays only users with `approved === false`.",
+        "If there are no pending users, the screen shows an empty state message indicating there are no pending users.",
+        "The list data is fetched from the Firestore `users` collection (using the existing Firestore wrapper/hook pattern)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Implement strict field-level visibility on `/admin/users`:\n- `super_admin` can see: profile photo, name, age, relation, phone number, email, role, approval status\n- `helper_admin` can see ONLY: profile photo, name, age, relation, approval status\n- `helper_admin` must not see: phone number, email, role-change options, delete options",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Data visibility rules:\n- super_admin can see:\n  - profile photo\n  - name\n  - age\n  - relation\n  - phone number\n  - email\n  - role\n  - approval status\n\n- helper_admin can see ONLY:\n  - profile photo\n  - name\n  - age\n  - relation\n  - approval status\n\n- helper_admin MUST NOT see:\n  - phone number\n  - email\n  - role change options\n  - delete options"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When logged in as `helper_admin`, the users table does not render phone, email, or role columns/values anywhere on the page.",
+        "When logged in as `helper_admin`, there is no UI control to change a user role and no UI control to delete a user.",
+        "When logged in as `super_admin`, all specified fields (including phone, email, role) are visible in the pending list.",
+        "Approval status is visible to both admin roles."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Implement admin actions on pending users with strict role separation:\n- `super_admin`: Approve user, Reject user, Block user, Promote user to `helper_admin`\n- `helper_admin`: Approve user, Reject user\nAlso ensure the UI does not expose disallowed actions to `helper_admin` and does not allow `helper_admin` to execute role changes or deletion via any client-side path.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Actions:\n- super_admin:\n  - Approve user\n  - Reject user\n  - Block user\n  - Promote user to helper_admin\n\n- helper_admin:\n  - Approve user\n  - Reject user\n\nDo NOT allow:\n- helper_admin to modify roles\n- helper_admin to delete users"
+        ]
+      },
+      "acceptanceCriteria": [
+        "As `super_admin`, each pending user row offers actions: Approve, Reject, Block, Promote to helper_admin (with confirmation dialogs consistent with existing patterns).",
+        "As `helper_admin`, each pending user row offers only: Approve and Reject.",
+        "Attempting to trigger role updates as `helper_admin` is not possible via the UI (no action items rendered).",
+        "No delete-user functionality is added as part of this change."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Persist approval/rejection/block state in Firestore so login behavior matches requirements:\n- On approval: set `approved = true`\n- On rejection: keep `approved = false` and store a rejection flag/status so the app can show “Rejected by admin” on login\n- On block: store a block flag/status so the app can prevent login access and show an appropriate message\nKeep existing signup flow intact (do not change signup logic).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "On approval:\n- Set approved = true\n- Redirect user to chat screen on next login\n\nOn rejection:\n- Keep approved = false\n- Show “Rejected by admin” message on user login\n\nDo not change signup logic."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Approving a pending user updates the Firestore user document so that subsequent logins route to `/chat` via the existing redirect logic.",
+        "Rejecting a pending user leaves `approved === false` and sets a dedicated rejected indicator in Firestore (so the client can distinguish pending vs rejected).",
+        "Blocking a user sets a dedicated blocked indicator in Firestore (independent of `approved`).",
+        "No changes are made to the signup flow behavior; newly created non-first users remain unapproved by default."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Update the login flow to display the exact message “Rejected by admin” when a user attempts to log in and their Firestore profile indicates they were rejected (while still unapproved). Also prevent blocked users from proceeding past login with a clear English message.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Show “Rejected by admin” message on user login"
+        ]
+      },
+      "acceptanceCriteria": [
+        "If a user profile is marked rejected, the Login screen shows the exact string “Rejected by admin” and does not navigate into the app.",
+        "If a user profile is marked blocked, the Login screen shows an English blocked message and does not navigate into the app.",
+        "If a user is unapproved and not rejected, the app follows the existing behavior (routes to `/pending-approval`).",
+        "If a user is approved, the app routes to `/chat` using the existing redirect helper."
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "Update Firestore security rules (`frontend/firestore.rules`) to support the new `helper_admin` role:\n- Allow `helper_admin` to read the users collection as needed for `/admin/users`\n- Allow `helper_admin` to update only the minimal fields needed to approve/reject (and never role/phone/email)\n- Keep `super_admin` as the only role that can update roles, delete users, or perform privileged updates",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Fetch users from Firestore users collection",
+          "helper_admin MUST NOT see:\n  - phone number\n  - email\n  - role change options\n  - delete options"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A `helper_admin` can successfully load the pending users list from Firestore without permission errors.",
+        "A `helper_admin` can update approval/rejection status for a user but cannot update `role`, `phone`, or `email` fields per Firestore rules.",
+        "A `super_admin` can update approval/rejection/block status and can promote a user to `helper_admin`.",
+        "A normal `user` still cannot read other users’ profiles and cannot access admin capabilities."
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "text": "Ensure role privacy in the UI: clearly label roles internally for admins, but do not expose whether any admin is `super_admin` vs `helper_admin` to normal users anywhere in the non-admin UI.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "UI:\n- Clearly label roles internally (not visible to users)\n- Users should never know who is super_admin or helper_admin"
+        ]
+      },
+      "acceptanceCriteria": [
+        "In non-admin UI surfaces (e.g., the profile menu), normal users do not see labels that reveal `super_admin` or `helper_admin`.",
+        "Admin-only screens may show internal role labels as needed, but normal users cannot infer which admins are `super_admin` vs `helper_admin` from the standard user experience."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not build or expand the chat system beyond ensuring approved users continue to redirect to `/chat` on login.",
+    "Do not change the signup logic/flow (including first-user bootstrap behavior).",
+    "Helper admins must not be able to modify roles, delete users, or view sensitive fields (phone, email).",
+    "Keep all changes within the existing React + Firebase/Firestore frontend; do not introduce additional backend services."
+  ],
+  "nonGoals": [
+    "Implementing or redesigning the chat system.",
+    "Adding third-party authentication beyond what already exists.",
+    "Adding user deletion flows.",
+    "Adding notification/email delivery for approvals/rejections."
+  ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }
