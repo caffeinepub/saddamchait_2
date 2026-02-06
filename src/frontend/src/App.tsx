@@ -95,7 +95,9 @@ function AppContent() {
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/users' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
-            <AdminUsersScreen onNavigate={navigate} />
+            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
+              <AdminUsersScreen onNavigate={navigate} />
+            </AdminRouteGuard>
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/chats' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>

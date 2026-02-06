@@ -40,6 +40,7 @@ export default function ProfileScreen() {
   };
 
   const isAdmin = userProfile.role === 'super_admin' || userProfile.role === 'helper_admin';
+  const hasPhoto = userProfile.photoURL && userProfile.photoURL.trim().length > 0;
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -57,7 +58,7 @@ export default function ProfileScreen() {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={userProfile.photoURL} alt={userProfile.name} />
+                {hasPhoto && <AvatarImage src={userProfile.photoURL} alt={userProfile.name} />}
                 <AvatarFallback className="text-lg">{getInitials(userProfile.name)}</AvatarFallback>
               </Avatar>
               <div className="space-y-1">

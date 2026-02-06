@@ -69,6 +69,9 @@ actor {
 
   // Approval system
   public query ({ caller }) func isCallerApproved() : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can check approval status");
+    };
     AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvalState, caller);
   };
 

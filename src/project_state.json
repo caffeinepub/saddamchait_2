@@ -1,86 +1,43 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Build an admin approval system with strict role separation, including an Admin Users Dashboard at /admin/users backed by Firestore user records.",
+  "summary": "New project",
   "architectural_notes": [
-    "Admin Users Dashboard route: /admin/users (restricted to super_admin and helper_admin).",
-    "Firestore users collection is the source of truth; Pending list filtered by approved=false.",
-    "Role-based UI/data redaction: helper_admin must not receive/render phone/email/role editing/delete controls.",
-    "User login behavior depends on approval status: approved=true routes to chat on next login; rejected users see 'Rejected by admin' message while approved remains false.",
-    "Scope constraints: do not implement chat system; do not change signup logic; only implement approval dashboard and role separation."
+    "Profile and header avatar data source of truth is Firestore document users/{uid} (fields: name, email, photoURL); do not read these from Firebase Auth.",
+    "Scope constraint: modify only existing My Profile page and header avatar data fetching/binding; do not change signup/login/admin dashboard/user list/routes/navigation/UI layout/design/roles/approval logic."
   ],
   "known_issues": [],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-update-the-role-model-to-use-exactly-these-roles-everywhere-the-app-checks-or-displays-role-super-admin-helper-admin-user-remove-stop-using-the-legacy-admin-role-in-ui-logic-and-guards",
-      "title": "Update the role model to use exactly these roles everywhere the app checks or displays role: `super_admin`, `helper_admin`, `user` (remove/stop using the legacy `admin` role in UI logic and guards).",
+      "id": "feature-update-the-existing-my-profile-page-to-display-profile-photo-full-name-and-email-address-strictly-from-the-firestore-document-at-users-uid-fields-photourl-name-email-and-not-from-firebase-auth-user-fields",
+      "title": "Update the existing My Profile page to display profile photo, full name, and email address strictly from the Firestore document at `users/{uid}` (fields: `photoURL`, `name`, `email`) and not from Firebase Auth user fields.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-enforce-admin-route-access-rules-so-that-only-super-admin-and-helper-admin-can-access-admin-users-and-normal-users-cannot-access-any-admin-routes",
-      "title": "Enforce admin-route access rules so that only `super_admin` and `helper_admin` can access `/admin/users`, and normal users cannot access any admin routes.",
+      "id": "feature-on-the-my-profile-page-avatar-implement-a-deterministic-fallback-if-users-uid-photourl-is-missing-empty-do-not-attempt-to-load-an-image-and-instead-show-initials-derived-from-users-uid-name",
+      "title": "On the My Profile page avatar, implement a deterministic fallback: if `users/{uid}.photoURL` is missing/empty, do not attempt to load an image and instead show initials derived from `users/{uid}.name`.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-create-adjust-the-admin-users-dashboard-at-route-admin-users-to-show-a-pending-list-that-only-includes-firestore-users-documents-where-approved-false-do-not-show-already-approved-users-in-this-list",
-      "title": "Create/adjust the Admin Users Dashboard at route `/admin/users` to show a **Pending** list that only includes Firestore `users` documents where `approved == false` (do not show already-approved users in this list).",
+      "id": "feature-update-the-existing-header-top-right-avatar-to-use-firestore-users-uid-photourl-for-the-avatar-image-and-fall-back-to-initials-derived-from-firestore-users-uid-name-when-photourl-is-missing-empty-do-not-use-firebase-auth-for-any-displayed-profile-fields",
+      "title": "Update the existing header (top-right avatar) to use Firestore `users/{uid}.photoURL` for the avatar image and fall back to initials derived from Firestore `users/{uid}.name` when `photoURL` is missing/empty; do not use Firebase Auth for any displayed profile fields.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-implement-strict-field-level-visibility-on-admin-users-super-admin-can-see-profile-photo-name-age-relation-phone-number-email-role-approval-status-helper-admin-can-see-only-profile-photo-name-age-relation-approval-status-helper-admin-must-not-see-phone-number-email-role-change-options-delete-options",
-      "title": "Implement strict field-level visibility on `/admin/users`:\n- `super_admin` can see: profile photo, name, age, relation, phone number, email, role, approval status\n- `helper_admin` can see ONLY: profile photo, name, age, relation, approval status\n- `helper_admin` must not see: phone number, email, role-change options, delete options",
+      "id": "feature-ensure-the-data-used-by-the-my-profile-page-and-header-avatar-is-fetched-from-firestore-users-uid-as-the-single-source-of-truth-reading-only-name-email-photourl-for-binding-and-that-the-ui-updates-to-show-firestore-data-whenever-it-exists",
+      "title": "Ensure the data used by the My Profile page and header avatar is fetched from Firestore `users/{uid}` as the single source of truth (reading only `name`, `email`, `photoURL` for binding) and that the UI updates to show Firestore data whenever it exists.",
       "reqIds": [
         "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-admin-actions-on-pending-users-with-strict-role-separation-super-admin-approve-user-reject-user-block-user-promote-user-to-helper-admin-helper-admin-approve-user-reject-user-also-ensure-the-ui-does-not-expose-disallowed-actions-to-helper-admin-and-does-not-allow-helper-admin-to-execute-role-changes-or-deletion-via-any-client-side-path",
-      "title": "Implement admin actions on pending users with strict role separation:\n- `super_admin`: Approve user, Reject user, Block user, Promote user to `helper_admin`\n- `helper_admin`: Approve user, Reject user\nAlso ensure the UI does not expose disallowed actions to `helper_admin` and does not allow `helper_admin` to execute role changes or deletion via any client-side path.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-persist-approval-rejection-block-state-in-firestore-so-login-behavior-matches-requirements-on-approval-set-approved-true-on-rejection-keep-approved-false-and-store-a-rejection-flag-status-so-the-app-can-show-rejected-by-admin-on-login-on-block-store-a-block-flag-status-so-the-app-can-prevent-login-access-and-show-an-appropriate-message-keep-existing-signup-flow-intact-do-not-change-signup-logic",
-      "title": "Persist approval/rejection/block state in Firestore so login behavior matches requirements:\n- On approval: set `approved = true`\n- On rejection: keep `approved = false` and store a rejection flag/status so the app can show “Rejected by admin” on login\n- On block: store a block flag/status so the app can prevent login access and show an appropriate message\nKeep existing signup flow intact (do not change signup logic).",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-login-flow-to-display-the-exact-message-rejected-by-admin-when-a-user-attempts-to-log-in-and-their-firestore-profile-indicates-they-were-rejected-while-still-unapproved-also-prevent-blocked-users-from-proceeding-past-login-with-a-clear-english-message",
-      "title": "Update the login flow to display the exact message “Rejected by admin” when a user attempts to log in and their Firestore profile indicates they were rejected (while still unapproved). Also prevent blocked users from proceeding past login with a clear English message.",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-firestore-security-rules-frontend-firestore-rules-to-support-the-new-helper-admin-role-allow-helper-admin-to-read-the-users-collection-as-needed-for-admin-users-allow-helper-admin-to-update-only-the-minimal-fields-needed-to-approve-reject-and-never-role-phone-email-keep-super-admin-as-the-only-role-that-can-update-roles-delete-users-or-perform-privileged-updates",
-      "title": "Update Firestore security rules (`frontend/firestore.rules`) to support the new `helper_admin` role:\n- Allow `helper_admin` to read the users collection as needed for `/admin/users`\n- Allow `helper_admin` to update only the minimal fields needed to approve/reject (and never role/phone/email)\n- Keep `super_admin` as the only role that can update roles, delete users, or perform privileged updates",
-      "reqIds": [
-        "REQ-8"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-role-privacy-in-the-ui-clearly-label-roles-internally-for-admins-but-do-not-expose-whether-any-admin-is-super-admin-vs-helper-admin-to-normal-users-anywhere-in-the-non-admin-ui",
-      "title": "Ensure role privacy in the UI: clearly label roles internally for admins, but do not expose whether any admin is `super_admin` vs `helper_admin` to normal users anywhere in the non-admin UI.",
-      "reqIds": [
-        "REQ-9"
       ],
       "version": 1
     }
@@ -88,42 +45,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Implement roles (super_admin, helper_admin, user) with access control preventing normal users from accessing admin routes and allowing only admins to access /admin/users",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Create Admin Users Dashboard at /admin/users that fetches Firestore users and shows a Pending list of users where approved=false",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Enforce data visibility: super_admin can see full user fields; helper_admin can only see limited fields and must not see sensitive fields or role/delete controls",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Admin actions: super_admin can approve/reject/block/promote to helper_admin; helper_admin can approve/reject only; enforce restrictions (no role changes/deletes for helper_admin)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Approval/rejection outcomes: on approval set approved=true and redirect user to chat screen on next login; on rejection keep approved=false and show 'Rejected by admin' message on login",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "UI/privacy rules: label roles internally only; users must not know which admins are super_admin/helper_admin; do not build chat system or change signup logic",
+      "summary": "Fix My Profile page and header avatar to bind name/email/photoURL from Firestore users/{uid} (no Firebase Auth reads; fallback to initials when photoURL empty) without changing any other pages/routes/UI",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Admin approval dashboard with super_admin vs helper_admin role separation",
+  "projectName": "Fix My Profile page and header avatar to bind name/email/photoURL from Firestore users/{uid}",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

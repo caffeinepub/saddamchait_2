@@ -12,7 +12,7 @@ import { getPostLoginRoute } from '@/lib/postLoginRedirect';
 interface LoginScreenProps {
   onNavigateToSignup: () => void;
   onNavigateToReset: () => void;
-  onLoginSuccess: (redirectTo: '/chat' | '/pending-approval') => void;
+  onLoginSuccess: (redirectTo: '/chat' | '/pending-approval' | '/admin/users') => void;
 }
 
 export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onLoginSuccess }: LoginScreenProps) {

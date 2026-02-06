@@ -1,79 +1,15 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T01:10:26.333Z",
-  "summary": "Most core requirements for role separation, admin route guarding, pending-users dashboard, per-role UI visibility, admin actions, login rejection/blocked messaging, and Firestore role typing appear implemented. The main gap is that Firestore rules for helper_admin updates are broader than requested (they only block role/phone/email edits, but still allow other fields). There are also several changes that look out-of-scope/unrequested (e.g., HomeScreen and /home redirect references, major styling/config/doc updates).",
-  "missing_requirements": [
-    {
-      "id": "REQ-8",
-      "requirement": "Update Firestore security rules to allow helper_admin to update only the minimal fields needed to approve/reject (and never role/phone/email).",
-      "reason": "The rules only prevent helper_admin from updating role/phone/email, but do not restrict helper_admin updates strictly to approval/rejection fields; as written, helper_admin could update other fields (e.g., name/age/relation/photoURL/blocked/rejected) as long as role/phone/email are untouched.",
-      "evidence": [
-        "frontend/firestore.rules"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "Introduced a HomeScreen and related smoke-test expectations about redirecting approved users to /home.",
-      "reason": "BuildRequest requires approved users continue to redirect to `/chat` on login and explicitly says not to expand the chat system beyond ensuring that behavior. Adding a HomeScreen and documenting /home redirects is not requested and conflicts with the stated constraint (even if code still redirects to /chat).",
-      "evidence": [
-        "frontend/src/screens/HomeScreen.tsx",
-        "frontend/LIVE_SMOKE_TEST.md",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Large UI/theming/configuration changes (global CSS OKLCH palette, Tailwind config changes).",
-      "reason": "Not requested by any REQ; BuildRequest focuses on admin approval dashboard, role separation, login gating, and rules changes.",
-      "evidence": [
-        "frontend/src/index.css",
-        "frontend/tailwind.config.js",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Password reset screen reworked into a UI-only manual reset flow messaging (no Firebase reset API calls).",
-      "reason": "Not part of the requested requirements; BuildRequest does not ask to change/reset password functionality.",
-      "evidence": [
-        "frontend/src/screens/PasswordResetScreen.tsx",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Deployment and smoke-test documentation expanded/added beyond the requested feature implementation.",
-      "reason": "BuildRequest did not request new deployment runbooks/smoke test documents as part of the feature delivery.",
-      "evidence": [
-        "frontend/DEPLOYMENT.md",
-        "frontend/LIVE_SMOKE_TEST.md",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Removed/changed authentication provider setup in main entry point (Internet Identity provider removed).",
-      "reason": "Not requested; BuildRequest constraints specify staying within existing React+Firebase frontend and not changing signup flow; removing unrelated auth providers appears out of scope.",
-      "evidence": [
-        "frontend/src/main.tsx",
-        "frontend-file-summaries.txt"
-      ]
-    }
-  ],
-  "confidence": 0.74,
+  "generatedAt": "2026-02-06T02:09:17.769Z",
+  "summary": "Diff updates the existing AppHeader and ProfileScreen to consume a Firestore-backed `userProfile` via `useFirestoreUserProfile()`, binding avatar/name/email from `userProfile` and adding an initials fallback when `photoURL` is empty. No evidence in the provided diff summary shows changes to auth flows, routes, or admin logic.",
+  "missing_requirements": [],
+  "hallucinated_features": [],
+  "confidence": 0.72,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/firestore.rules",
-    "frontend/src/App.tsx",
-    "frontend/src/components/admin/UserRowActions.tsx",
-    "frontend/src/components/auth/AdminRouteGuard.tsx",
-    "frontend/src/components/layout/ProfileMenu.tsx",
-    "frontend/src/hooks/useFirestorePendingUsersList.ts",
-    "frontend/src/lib/firebase.ts",
-    "frontend/src/lib/firebaseTypes.ts",
-    "frontend/src/lib/postLoginRedirect.ts",
-    "frontend/src/screens/LoginScreen.tsx",
+    "frontend/src/components/layout/AppHeader.tsx",
     "frontend/src/screens/ProfileScreen.tsx",
-    "frontend/src/screens/admin/AdminDashboardScreen.tsx",
-    "frontend/src/screens/admin/AdminUsersScreen.tsx",
     "project_state.json"
   ]
 }

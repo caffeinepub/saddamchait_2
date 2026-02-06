@@ -12,7 +12,7 @@ import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
 
 interface SignupScreenProps {
   onNavigateToLogin: () => void;
-  onSignupSuccess: (redirectTo: '/chat' | '/pending-approval') => void;
+  onSignupSuccess: (redirectTo: '/chat' | '/pending-approval' | '/admin/users') => void;
 }
 
 export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: SignupScreenProps) {
@@ -187,8 +187,8 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
       if (result.success) {
         // Redirect based on whether this was the first user
         if (result.isFirstUser) {
-          console.log('SignupScreen - First user (super_admin, approved), redirecting to /chat');
-          onSignupSuccess('/chat');
+          console.log('SignupScreen - First user (super_admin, approved), redirecting to /admin/users');
+          onSignupSuccess('/admin/users');
         } else {
           console.log('SignupScreen - Not first user, redirecting to /pending-approval');
           onSignupSuccess('/pending-approval');

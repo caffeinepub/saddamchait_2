@@ -17,6 +17,8 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
     return name.slice(0, 2).toUpperCase();
   };
 
+  const hasPhoto = userProfile?.photoURL && userProfile.photoURL.trim().length > 0;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
@@ -33,7 +35,7 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
           <ProfileMenu userProfile={userProfile} onNavigate={onNavigate}>
             <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={userProfile.photoURL} alt={userProfile.name} />
+                {hasPhoto && <AvatarImage src={userProfile.photoURL} alt={userProfile.name} />}
                 <AvatarFallback>{getInitials(userProfile.name)}</AvatarFallback>
               </Avatar>
             </button>
