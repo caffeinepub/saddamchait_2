@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserCheck, UserX, Shield, User, Trash2 } from 'lucide-react';
+import { MoreHorizontal, UserCheck, UserX, Shield, User } from 'lucide-react';
 import { useState } from 'react';
 
 interface UserRowActionsProps {
@@ -32,7 +32,6 @@ interface UserRowActionsProps {
   onApprove: () => void;
   onBlock: () => void;
   onChangeRole: (role: 'user' | 'admin') => void;
-  onDelete: () => void;
   isUpdating: boolean;
 }
 
@@ -43,13 +42,11 @@ export default function UserRowActions({
   onApprove,
   onBlock,
   onChangeRole,
-  onDelete,
   isUpdating,
 }: UserRowActionsProps) {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [targetRole, setTargetRole] = useState<'user' | 'admin'>('user');
 
   const isSuperAdminUser = user.role === 'super_admin';
@@ -69,11 +66,6 @@ export default function UserRowActions({
   const handleChangeRole = () => {
     onChangeRole(targetRole);
     setShowRoleDialog(false);
-  };
-
-  const handleDelete = () => {
-    onDelete();
-    setShowDeleteDialog(false);
   };
 
   return (
@@ -129,19 +121,6 @@ export default function UserRowActions({
               )}
             </>
           )}
-          
-          {isSuperAdmin && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => setShowDeleteDialog(true)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete User
-              </DropdownMenuItem>
-            </>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -188,25 +167,6 @@ export default function UserRowActions({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleChangeRole}>Change Role</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete User Profile</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {user.name}'s profile? This will remove their Firestore profile document.
-              <br /><br />
-              <strong>Note:</strong> This only deletes the profile data. The Firebase Authentication account will remain and must be managed separately through the Firebase Console if needed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete Profile
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

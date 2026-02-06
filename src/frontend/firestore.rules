@@ -6,43 +6,73 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Helper function to get user data
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    
-    // Helper function to check if user is admin or super_admin
-    function isAdmin() {
-      return isAuthenticated() && 
-             (getUserData().role == 'admin' || getUserData().role == 'super_admin');
-    }
-    
     // Helper function to check if user is super_admin
     function isSuperAdmin() {
-      return isAuthenticated() && getUserData().role == 'super_admin';
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     
-    // Users collection rules
+    // Helper function to check if user is approved
+    function isApproved() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true;
+    }
+    
+    // Users collection
     match /users/{userId} {
-      // Allow read for own document
+      // Allow read for own profile
       allow read: if isAuthenticated() && request.auth.uid == userId;
       
-      // Allow read for all users if requester is admin
-      allow read: if isAdmin();
+      // Allow super_admin to read all users (for user management)
+      allow read: if isSuperAdmin();
       
-      // Allow create for new users (signup) - first user can be super_admin
+      // Allow create during signup (first user becomes super_admin)
       allow create: if isAuthenticated() && request.auth.uid == userId;
       
-      // Allow update for own profile (except role and approved fields)
-      allow update: if isAuthenticated() && 
-                       request.auth.uid == userId &&
-                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'approved']);
-      
-      // Allow super_admin to update any user including role and approved
+      // Only super_admin can update approval status
       allow update: if isSuperAdmin();
       
-      // Allow super_admin to delete user profiles
+      // Only super_admin can delete profiles
       allow delete: if isSuperAdmin();
+    }
+    
+    // Chat requests collection
+    match /chat_requests/{requestId} {
+      // Users can read requests they're involved in
+      allow read: if isAuthenticated() && 
+                     (resource.data.fromUserId == request.auth.uid || 
+                      resource.data.toUserId == request.auth.uid);
+      
+      // Approved users can create requests
+      allow create: if isApproved() && 
+                       request.resource.data.fromUserId == request.auth.uid;
+      
+      // Users can update requests they're the recipient of (accept/reject)
+      allow update: if isAuthenticated() && 
+                       resource.data.toUserId == request.auth.uid;
+    }
+    
+    // Chats collection
+    match /chats/{chatId} {
+      // Only chat members can read
+      allow read: if isAuthenticated() && 
+                     request.auth.uid in resource.data.members;
+      
+      // Approved users can create chats (via accepting requests)
+      allow create: if isApproved() && 
+                       request.auth.uid in request.resource.data.members;
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Only chat members can read messages
+        allow read: if isAuthenticated() && 
+                       request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        
+        // Only chat members can create messages
+        allow create: if isAuthenticated() && 
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members &&
+                         request.resource.data.senderId == request.auth.uid;
+      }
     }
   }
 }

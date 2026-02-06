@@ -12,7 +12,7 @@ interface AdminUsersScreenProps {
 }
 
 export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) {
-  const { data: users, isLoading, updateApproval, updateRole, deleteUser, isUpdating } = useFirestoreUsersList();
+  const { data: users, isLoading, updateApproval, updateRole, isUpdating } = useFirestoreUsersList();
   const { data: currentUserProfile } = useFirestoreUserProfile();
 
   const isSuperAdmin = currentUserProfile?.role === 'super_admin';
@@ -96,7 +96,6 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
                             onApprove={() => updateApproval({ uid: user.uid, approved: true })}
                             onBlock={() => updateApproval({ uid: user.uid, approved: false })}
                             onChangeRole={(role) => updateRole({ uid: user.uid, role })}
-                            onDelete={() => deleteUser({ uid: user.uid })}
                             isUpdating={isUpdating}
                           />
                         </TableCell>

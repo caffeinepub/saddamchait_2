@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, User, Settings, Users } from 'lucide-react';
+import { LogOut, User, Shield } from 'lucide-react';
 import { signOutUser } from '@/lib/firebase';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -25,7 +25,6 @@ interface ProfileMenuProps {
 export default function ProfileMenu({ userProfile, onNavigate, children }: ProfileMenuProps) {
   const queryClient = useQueryClient();
   const isAdmin = userProfile.role === 'admin' || userProfile.role === 'super_admin';
-  const isSuperAdmin = userProfile.role === 'super_admin';
 
   const handleLogout = async () => {
     try {
@@ -43,10 +42,6 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
 
   const handleAdminDashboard = () => {
     onNavigate('/admin');
-  };
-
-  const handleUserManagement = () => {
-    onNavigate('/admin/users');
   };
 
   return (
@@ -74,15 +69,8 @@ export default function ProfileMenu({ userProfile, onNavigate, children }: Profi
         
         {isAdmin && (
           <DropdownMenuItem onClick={handleAdminDashboard}>
-            <Settings className="mr-2 h-4 w-4" />
+            <Shield className="mr-2 h-4 w-4" />
             Admin Dashboard
-          </DropdownMenuItem>
-        )}
-        
-        {isSuperAdmin && (
-          <DropdownMenuItem onClick={handleUserManagement}>
-            <Users className="mr-2 h-4 w-4" />
-            User Management
           </DropdownMenuItem>
         )}
         

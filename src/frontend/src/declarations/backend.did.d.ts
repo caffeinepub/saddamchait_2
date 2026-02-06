@@ -13,6 +13,16 @@ import type { Principal } from '@icp-sdk/core/principal';
 export type ApprovalStatus = { 'pending' : null } |
   { 'approved' : null } |
   { 'rejected' : null };
+export interface ChatRequest {
+  'status' : ChatRequestStatus,
+  'toUid' : Principal,
+  'createdAt' : bigint,
+  'fromUid' : Principal,
+}
+export type ChatRequestId = bigint;
+export type ChatRequestStatus = { 'pending' : null } |
+  { 'rejected' : null } |
+  { 'accepted' : null };
 export interface UserApprovalInfo {
   'status' : ApprovalStatus,
   'principal' : Principal,
@@ -23,15 +33,29 @@ export type UserRole = { 'admin' : null } |
   { 'guest' : null };
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'acceptChatRequest' : ActorMethod<[ChatRequestId], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getChatRequest' : ActorMethod<[ChatRequestId], [] | [ChatRequest]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
+  'listAcceptedChats' : ActorMethod<[], Array<Principal>>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
+  'listIncomingChatRequests' : ActorMethod<
+    [],
+    Array<[ChatRequestId, ChatRequest]>
+  >,
+  'listOutgoingChatRequests' : ActorMethod<
+    [],
+    Array<[ChatRequestId, ChatRequest]>
+  >,
+  'refreshAdmins' : ActorMethod<[], Array<Principal>>,
+  'rejectChatRequest' : ActorMethod<[ChatRequestId], undefined>,
   'requestApproval' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'sendChatRequest' : ActorMethod<[Principal], ChatRequestId>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

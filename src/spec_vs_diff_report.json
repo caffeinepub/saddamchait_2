@@ -1,44 +1,92 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T23:20:52.990Z",
-  "summary": "REQ-1 and REQ-2 appear implemented via branding updates in AppHeader/Login/index.html and a new shared post-login redirect helper. There is insufficient evidence in the provided diff summary that REQ-3 (header dropdown link to /admin/users for super_admin) or the route/guard changes required by REQ-4 and REQ-5 were implemented.",
+  "generatedAt": "2026-02-06T00:09:53.165Z",
+  "summary": "Most core frontend flow updates appear implemented: shared post-login redirect helper routes unapproved users to /pending-approval and all approved users to /chat; /users now renders a unified approved-users list view for all roles; admin navigation is moved to the header profile dropdown and admin pages are guarded. However, several requirements are either not evidenced or appear contradicted by the diff summary—most notably the exact chat_request field semantics (fromUid/toUid) versus implemented fromUserId/toUserId, and a noted Firestore rules change that would deny super_admin chat reads, conflicting with role semantics. There are also multiple added features/routes (/home, HomeScreen) not requested and potentially conflicting with the /chat landing requirement.",
   "missing_requirements": [
     {
-      "id": "REQ-3",
-      "requirement": "Ensure the User Management screen at route /admin/users is accessible from the Chat experience via the header dropdown menu for super_admin users.",
-      "reason": "AppHeader was updated to show the new brand name, but no changes are shown for the header profile dropdown/menu component to add a super_admin-only \"User Management\" item that navigates to /admin/users.",
+      "id": "REQ-2",
+      "requirement": "FAB on /chat bottom-right that navigates to /users when clicked.",
+      "reason": "ChatScreen shows the empty state text and references a Floating Action Button, but the diff is truncated before showing the actual FAB implementation and click handler to navigate to /users.",
       "evidence": [
-        "frontend/src/components/layout/AppHeader.tsx"
+        "frontend/src/screens/ChatScreen.tsx (truncated at 'Floating Action Button')"
       ]
     },
     {
       "id": "REQ-4",
-      "requirement": "Remove any routing/guard behavior that blocks super_admin or admin users behind dashboard-only screens; admins should be able to stay on /chat without being redirected to dashboard-only pages.",
-      "reason": "The diff summary does not include any changes to the routing/guard layer (e.g., App routing/guards) that would prevent redirects to /admin or other dashboard-only routes.",
+      "requirement": "Sending a chat request creates a record with fields { fromUid, toUid, status: \"pending\", createdAt } (exact semantics/values).",
+      "reason": "The implemented UI code and request filtering use fields named fromUserId/toUserId (not fromUid/toUid). The Firestore write semantics with exact field names/createdAt are not evidenced in the provided snippets and appear inconsistent with the requirement’s field naming.",
       "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/src/screens/users/ApprovedUsersListView.tsx (uses req.toUserId, req.fromUserId; sendChatRequest(authUser?.uid, toUserId))",
+        "frontend-file-summaries.txt (mentions chat request functions but not field names)"
       ]
     },
     {
-      "id": "REQ-5",
-      "requirement": "Ensure super_admin always has access to /admin/users without being routed through or blocked by the approval flow; approval gating applies only to non-admin users.",
-      "reason": "While the new post-login redirect helper prioritizes admin roles over approval status, there is no evidence of route-guard logic updates ensuring super_admin can access /admin/users even if unapproved and is never redirected to /pending-approval when navigating there.",
+      "id": "REQ-7",
+      "requirement": "super_admin users must have access to normal chat flow (/chat) like normal users (subject to approval).",
+      "reason": "A diff summary note states Firestore rules include an 'explicit super_admin denial of chat reads', which would prevent super_admin from using chat normally, contradicting REQ-7.",
       "evidence": [
-        "frontend/src/lib/postLoginRedirect.ts",
-        "frontend-file-summaries.txt"
+        "frontend-file-summaries.txt (\"firestore.rules\": \"... and explicit super_admin denial of chat reads.\")"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.62,
+  "hallucinated_features": [
+    {
+      "description": "Introduction of a /home landing route and HomeScreen (including smoke test references to /home redirects).",
+      "reason": "BuildRequest requires /chat as the default landing for all approved users; /home is not requested and the smoke test summary indicates verification for /home, which conflicts with the requested routing behavior.",
+      "evidence": [
+        "frontend-file-summaries.txt (mentions \"frontend/src/screens/HomeScreen.tsx\")",
+        "frontend-file-summaries.txt (\"LIVE_SMOKE_TEST.md\": \"... verify approved users redirect to /home ...\")"
+      ]
+    },
+    {
+      "description": "Firestore security rules change that denies super_admin chat reads.",
+      "reason": "Not requested; also contradicts REQ-7 which requires super_admin to participate in normal chat flow.",
+      "evidence": [
+        "frontend-file-summaries.txt (\"firestore.rules\": \"... explicit super_admin denial of chat reads\")"
+      ]
+    },
+    {
+      "description": "Backend Motoko chat request state/migration (chatRequests Map, nextChatRequestId, stable adminState) added alongside Firestore-based frontend workflow.",
+      "reason": "BuildRequest specifies Firestore semantics for chat_requests and focuses on frontend UX; adding a parallel Motoko-based chat-request storage/migration is not requested in requirements and may be unnecessary scope.",
+      "evidence": [
+        "backend/migration.mo",
+        "backend/main.mo (adds ChatRequest types/storage, adminState stable var, migration hook)"
+      ]
+    },
+    {
+      "description": "Password reset screen changed to 'UI-only' with admin-only manual reset messaging (no Firebase reset API calls).",
+      "reason": "Password reset behavior is not part of the BuildRequest; this is additional unrequested product behavior.",
+      "evidence": [
+        "frontend-file-summaries.txt (\"PasswordResetScreen.tsx\": \"UI-only password reset... no Firebase password reset API calls\")"
+      ]
+    },
+    {
+      "description": "Modification to an immutable frontend path (frontend/src/main.tsx) described as removing Internet Identity provider.",
+      "reason": "BuildRequest constraint explicitly forbids editing frontend/src/main.tsx; the diff summary indicates it was changed, which is unrequested work and violates constraints.",
+      "evidence": [
+        "frontend-file-summaries.txt (\"frontend/src/main.tsx\": \"... Internet Identity provider removed ...\")"
+      ]
+    }
+  ],
+  "confidence": 0.67,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/index.html",
-    "frontend/src/components/layout/AppHeader.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/UserRowActions.tsx",
+    "frontend/src/components/layout/ProfileMenu.tsx",
+    "frontend/src/hooks/useFirestoreUsersList.ts",
+    "frontend/src/lib/firebase.ts",
     "frontend/src/lib/postLoginRedirect.ts",
+    "frontend/src/screens/ChatScreen.tsx",
     "frontend/src/screens/LoginScreen.tsx",
     "frontend/src/screens/SignupScreen.tsx",
+    "frontend/src/screens/UsersScreen.tsx",
+    "frontend/src/screens/admin/AdminDashboardScreen.tsx",
+    "frontend/src/screens/admin/AdminUsersScreen.tsx",
+    "frontend/src/screens/users/ApprovedUsersListView.tsx",
     "project_state.json"
   ]
 }

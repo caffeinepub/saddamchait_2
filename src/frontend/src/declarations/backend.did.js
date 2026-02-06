@@ -8,12 +8,24 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const ChatRequestId = IDL.Nat;
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const ChatRequestStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'rejected' : IDL.Null,
+  'accepted' : IDL.Null,
+});
+export const ChatRequest = IDL.Record({
+  'status' : ChatRequestStatus,
+  'toUid' : IDL.Principal,
+  'createdAt' : IDL.Nat,
+  'fromUid' : IDL.Principal,
+});
 export const ApprovalStatus = IDL.Variant({
   'pending' : IDL.Null,
   'approved' : IDL.Null,
@@ -26,9 +38,15 @@ export const UserApprovalInfo = IDL.Record({
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'acceptChatRequest' : IDL.Func([ChatRequestId], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getChatRequest' : IDL.Func(
+      [ChatRequestId],
+      [IDL.Opt(ChatRequest)],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -36,21 +54,47 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
+  'listAcceptedChats' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+  'listIncomingChatRequests' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(ChatRequestId, ChatRequest))],
+      ['query'],
+    ),
+  'listOutgoingChatRequests' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(ChatRequestId, ChatRequest))],
+      ['query'],
+    ),
+  'refreshAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], []),
+  'rejectChatRequest' : IDL.Func([ChatRequestId], [], []),
   'requestApproval' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'sendChatRequest' : IDL.Func([IDL.Principal], [ChatRequestId], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const ChatRequestId = IDL.Nat;
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const ChatRequestStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'rejected' : IDL.Null,
+    'accepted' : IDL.Null,
+  });
+  const ChatRequest = IDL.Record({
+    'status' : ChatRequestStatus,
+    'toUid' : IDL.Principal,
+    'createdAt' : IDL.Nat,
+    'fromUid' : IDL.Principal,
+  });
   const ApprovalStatus = IDL.Variant({
     'pending' : IDL.Null,
     'approved' : IDL.Null,
@@ -63,9 +107,15 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'acceptChatRequest' : IDL.Func([ChatRequestId], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getChatRequest' : IDL.Func(
+        [ChatRequestId],
+        [IDL.Opt(ChatRequest)],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -73,9 +123,23 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
+    'listAcceptedChats' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+    'listIncomingChatRequests' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(ChatRequestId, ChatRequest))],
+        ['query'],
+      ),
+    'listOutgoingChatRequests' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(ChatRequestId, ChatRequest))],
+        ['query'],
+      ),
+    'refreshAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], []),
+    'rejectChatRequest' : IDL.Func([ChatRequestId], [], []),
     'requestApproval' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'sendChatRequest' : IDL.Func([IDL.Principal], [ChatRequestId], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
   });
 };

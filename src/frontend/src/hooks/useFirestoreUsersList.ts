@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAllUsers, updateUserApproval, updateUserRole, deleteUserProfile } from '@/lib/firebase';
+import { getAllUsers, updateUserApproval, updateUserRole } from '@/lib/firebase';
 
 export function useFirestoreUsersList() {
   const queryClient = useQueryClient();
@@ -26,19 +26,10 @@ export function useFirestoreUsersList() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: ({ uid }: { uid: string }) =>
-      deleteUserProfile(uid),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
-    },
-  });
-
   return {
     ...query,
     updateApproval: approvalMutation.mutate,
     updateRole: roleMutation.mutate,
-    deleteUser: deleteMutation.mutate,
-    isUpdating: approvalMutation.isPending || roleMutation.isPending || deleteMutation.isPending,
+    isUpdating: approvalMutation.isPending || roleMutation.isPending,
   };
 }

@@ -6,17 +6,15 @@ interface UserProfile {
 /**
  * Determines the post-login redirect route based on user profile.
  * Priority order:
- * 1. super_admin → /chat
- * 2. admin → /chat
- * 3. approved user → /chat
- * 4. unapproved user → /pending-approval
+ * 1. unapproved user → /pending-approval
+ * 2. ALL approved users (including admin/super_admin) → /chat
  */
 export function getPostLoginRoute(profile: UserProfile): '/chat' | '/pending-approval' {
-  // Admins always go to /chat regardless of approval status
-  if (profile.role === 'super_admin' || profile.role === 'admin') {
-    return '/chat';
+  // Unapproved users always go to pending approval
+  if (!profile.approved) {
+    return '/pending-approval';
   }
 
-  // Regular users: approved → /chat, unapproved → /pending-approval
-  return profile.approved ? '/chat' : '/pending-approval';
+  // All approved users (including admin and super_admin) go to /chat
+  return '/chat';
 }

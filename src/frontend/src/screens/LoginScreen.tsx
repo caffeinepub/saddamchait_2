@@ -12,7 +12,7 @@ import { getPostLoginRoute } from '@/lib/postLoginRedirect';
 interface LoginScreenProps {
   onNavigateToSignup: () => void;
   onNavigateToReset: () => void;
-  onLoginSuccess: (redirectTo: '/chat' | '/admin' | '/admin/users' | '/pending-approval') => void;
+  onLoginSuccess: (redirectTo: '/chat' | '/pending-approval') => void;
 }
 
 export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onLoginSuccess }: LoginScreenProps) {
@@ -46,10 +46,6 @@ export default function LoginScreen({ onNavigateToSignup, onNavigateToReset, onL
         const redirectTo = getPostLoginRoute(profile);
         console.log('LoginScreen - Redirecting to:', redirectTo);
         onLoginSuccess(redirectTo);
-      } else if (result.needsApproval) {
-        // User exists but not approved
-        console.log('LoginScreen - User needs approval, redirecting to pending approval');
-        onLoginSuccess('/pending-approval');
       } else if (result.error) {
         // Firebase error
         console.log('LoginScreen - Firebase error:', result.error);

@@ -17,7 +17,7 @@ export default function AdminDashboardScreen({ onNavigate }: AdminDashboardScree
   const adminUsers = users?.filter(u => u.role === 'admin' || u.role === 'super_admin').length || 0;
 
   return (
-    <AdminRouteGuard onUnauthorized={() => onNavigate('/home')}>
+    <AdminRouteGuard onUnauthorized={() => onNavigate('/chat')}>
       <AdminLayout currentPath="/admin" onNavigate={onNavigate}>
         <div className="container mx-auto p-6 space-y-6">
           <div>

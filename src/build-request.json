@@ -1,110 +1,187 @@
 {
   "kind": "build_request",
-  "title": "Fix branding and role-based post-login routing for Saddam Chat",
+  "title": "Align roles, post-login redirects, chat landing (/chat), users list (/users), chat-request flow, and admin access separation",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Replace all user-facing occurrences of the string \"Admin Portal\" with \"Saddam Chat\" across the frontend, including (at minimum) the app header, screen titles/headings, and the HTML document title/meta in frontend/index.html.",
+      "text": "Update post-login redirect logic so that after signup/login: (1) if the Firestore user profile has approved == false, navigate to /pending-approval; (2) if approved == true, ALWAYS navigate to /chat for all roles including admin and super_admin, and do not auto-redirect any admin/super_admin to /users or any admin page.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "user-msg-1"
         ],
         "quotes": [
-          "Replace all occurrences of \"Admin Portal\" with the app name \"Saddam Chat\" (header, titles, meta)."
+          "After signup/login: If approved == false → show \"Pending Approval\" screen. If approved == true → ALWAYS redirect to Chat Home page (/chat), even for admin or super_admin. Do NOT auto-redirect admins to User List or Admin Dashboard."
         ]
       },
       "acceptanceCriteria": [
-        "AppHeader no longer renders \"Admin Portal\" and instead renders \"Saddam Chat\".",
-        "Login screen heading no longer renders \"Admin Portal\" and instead renders \"Saddam Chat\".",
-        "frontend/index.html <title> is set to \"Saddam Chat\" (fix any typos) and the browser tab shows \"Saddam Chat\".",
-        "No remaining visible UI text shows \"Admin Portal\" anywhere in the app."
+        "Given an unapproved user logs in or signs up, they are navigated to /pending-approval.",
+        "Given an approved normal user logs in or signs up, they are navigated to /chat.",
+        "Given an approved admin logs in or signs up, they are navigated to /chat.",
+        "Given an approved super_admin logs in or signs up, they are navigated to /chat.",
+        "No code path redirects users to /users based solely on role."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update post-login redirect logic so that after a successful login: super_admin redirects to /chat by default; admin redirects to /chat; approved non-admin users redirect to /chat; only unapproved non-admin users redirect to /pending-approval. Ensure admin/super_admin never get sent to the Pending Approval screen due to an approval flag check order.",
+      "text": "Make /chat the default landing screen for all approved users and implement the Chat Home empty state with the exact user-facing text: \"Start a conversation. Tap + to find users.\" and a bottom-right Floating Action Button (FAB) with a plus/new-chat icon that navigates to /users when clicked.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "user-msg-1"
         ],
         "quotes": [
-          "Change post-login routing:\n   - super_admin → redirect to /chat by default\n   - admin → redirect to /chat\n   - normal approved user → /chat\n   - only unapproved users → Pending Approval screen"
+          "CHAT HOME PAGE (/chat)\n- This is the default landing page for all approved users.\n- Show empty-state text like:\n  \"Start a conversation. Tap + to find users.\"\n- Show a Floating Action Button (FAB) at bottom-right.\n\nFLOATING ACTION BUTTON (FAB)\n- FAB icon: plus / new chat.\n- On FAB click → navigate to User List page (/users)."
         ]
       },
       "acceptanceCriteria": [
-        "Logging in with role=super_admin always navigates to /chat.",
-        "Logging in with role=admin always navigates to /chat.",
-        "Logging in with role=user and approved=true navigates to /chat.",
-        "Logging in with role=user and approved=false navigates to /pending-approval.",
-        "No admin/super_admin account can end up on /pending-approval as a result of the login redirect logic."
+        "When the current user has zero chats, /chat shows the empty-state text exactly: \"Start a conversation. Tap + to find users.\"",
+        "A FAB is visible at bottom-right on /chat and uses a plus/new-chat icon.",
+        "Clicking the FAB navigates to /users.",
+        "Approved admin and approved super_admin users can access /chat and see the same chat home behavior as normal users."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Ensure the User Management screen at route /admin/users is accessible from the Chat experience via the header dropdown menu for super_admin users (i.e., from the Chat screen header menu, super_admin can navigate to /admin/users).",
+      "text": "Change /users to be a single \"User List\" experience for all roles that lists ALL approved users (normal, admin, and super_admin), including the currently logged-in user (do not exclude self). Each row must show the user's profile photo, name, and may show a small optional role badge.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "user-msg-1"
         ],
         "quotes": [
-          "Make User Management (/admin/users) accessible from Chat via header menu for super_admin."
+          "USER LIST PAGE (/users)\n- Show ALL approved users including:\n  - normal users\n  - admins\n  - super_admin (including the logged-in user)\n- Do NOT exclude the current user.\n- Each user row should show:\n  - profile photo\n  - name\n  - role badge (optional, small)"
         ]
       },
       "acceptanceCriteria": [
-        "When signed in as super_admin and viewing /chat, the header profile dropdown includes a \"User Management\" item.",
-        "Clicking \"User Management\" from /chat navigates to /admin/users successfully.",
-        "When signed in as non-super-admin, the \"User Management\" menu item is not shown."
+        "Navigating to /users shows a list of all approved user profiles returned by the data source, including admins and super_admins.",
+        "The currently authenticated user appears in the list.",
+        "Each list item shows avatar/photo and display name; role badge is present if implemented and is visually small/subtle.",
+        "/users no longer conditionally swaps to an admin-only user management screen based solely on role."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Remove any routing/guard behavior that blocks super_admin or admin users behind dashboard-only screens (e.g., do not force admins to land on /admin or require visiting /admin before accessing other allowed routes). Admin and super_admin should be able to access /chat and other non-authenticated routes permitted by login without being redirected to dashboard-only pages.",
-      "target": "frontend",
+      "text": "Implement the chat request UX logic on /users so that tapping a user row does NOT open a chat directly; instead it reveals a \"Send Chat Request\" action, and sending creates a chat_request record with fields { fromUid, toUid, status: \"pending\", createdAt } (preserve existing naming conventions in Firestore, but ensure these exact semantics and values).",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "user-msg-1"
         ],
         "quotes": [
-          "Do NOT block super_admin or admin on dashboard-only screens."
+          "CHAT REQUEST LOGIC\n- On tapping a user:\n  - Do NOT open chat directly.\n  - Show \"Send Chat Request\" button.\n- On send request:\n  - Create a chat_request document:\n    { fromUid, toUid, status: \"pending\", createdAt }"
         ]
       },
       "acceptanceCriteria": [
-        "After login, admin and super_admin are not redirected to /admin or any dashboard-only route unless they explicitly navigate there.",
-        "If an admin/super_admin manually navigates to /chat, they are allowed to stay on /chat (no automatic redirect to admin dashboard screens)."
+        "Clicking/tapping a user list row does not navigate to /chat and does not open an existing chat thread.",
+        "After selecting a user, the UI presents a \"Send Chat Request\" button to initiate a request.",
+        "Sending a request writes a Firestore document to the chat_requests collection (or existing chat request collection) with the correct semantics: requester as fromUid, recipient as toUid, status == \"pending\", and createdAt populated.",
+        "The app prevents duplicate pending requests from the same sender to the same recipient (either by UI state or backend rule), without deleting or modifying existing user documents."
       ]
     },
     {
       "id": "REQ-5",
-      "text": "Ensure super_admin always has access to the user list (/admin/users) without being routed through or blocked by the approval flow (Pending Approval). Any approval gating must apply only to non-admin users.",
-      "target": "frontend",
+      "text": "Implement request handling so the receiver is notified in the UI of incoming pending chat requests, can Accept or Reject, and: Accept creates a 1-to-1 chat thread accessible to both users; Reject does not create a chat thread. Ensure chat becomes enabled/visible for both users only after acceptance.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "user-msg-1"
         ],
         "quotes": [
-          "Ensure super_admin always sees user list access without needing approval flow."
+          "REQUEST HANDLING\n- Receiver sees incoming request notification.\n- Receiver can Accept or Reject.\n- If accepted:\n  - Create a 1-to-1 chat thread.\n  - Enable chat for both users.\n- If rejected:\n  - No chat is created."
         ]
       },
       "acceptanceCriteria": [
-        "A super_admin with an unapproved flag (if present in their profile data) is still able to navigate to /admin/users and view the user list screen.",
-        "A super_admin is never redirected to /pending-approval when attempting to access /admin/users.",
-        "Only non-admin users who are unapproved are shown /pending-approval."
+        "When User A sends a request to User B, User B sees an incoming request UI within the app without needing a manual refresh beyond existing polling behavior.",
+        "Accepting a request creates exactly one 1-to-1 chat thread containing both user IDs and allows both users to see/open it from /chat.",
+        "Rejecting a request updates the request status appropriately and does not create any chat thread.",
+        "Users cannot send messages to each other unless there is an accepted request/chat thread."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Separate admin access from the normal chat flow: normal users must not see any admin dashboard/features; admin dashboard must be accessible only via the header profile dropdown item labeled \"Admin Dashboard\" and only visible to admin/super_admin users. Admin features must never change the post-login redirect flow or the default /chat landing behavior.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "user-msg-1"
+        ],
+        "quotes": [
+          "ADMIN ACCESS (SEPARATE)\n- Admin Dashboard should be accessible ONLY via:\n  Header profile dropdown → \"Admin Dashboard\"\n- Only admin/super_admin can see this option.\n- Admin features must NEVER interfere with normal chat flow.\n\nROLES & IDENTITY\n- Normal users must NOT see admin dashboard or admin features."
+        ]
+      },
+      "acceptanceCriteria": [
+        "For a normal user, the header profile dropdown does not show any admin-only navigation items (including Admin Dashboard).",
+        "For an admin or super_admin, the header profile dropdown shows an \"Admin Dashboard\" item that navigates to the admin dashboard route.",
+        "Admin dashboard screens are guarded so only admin/super_admin can access them (direct navigation is blocked).",
+        "Approved admin/super_admin users still land on /chat after login and can use chat features without being redirected to admin areas."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Ensure role/identity semantics: treat super_admin as BOTH an admin and a normal user for product behavior, meaning super_admin users (and admins) must be included in the approved user list and have access to normal chat flow; normal users must not gain any admin-only capabilities.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "user-msg-1"
+        ],
+        "quotes": [
+          "A super_admin is BOTH an admin and a normal user.\nAdmin/super_admin must appear in the user list like a normal user.\nNormal users must NOT see admin dashboard or admin features."
+        ]
+      },
+      "acceptanceCriteria": [
+        "super_admin users can use /chat and /users the same way as normal users (subject to approval).",
+        "Admins and super_admins appear in /users like normal users (with optional role badge).",
+        "Normal users cannot access admin routes or see admin-only UI controls."
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "Safety constraints: do not delete any existing user documents; do not modify existing user roles or approval flags as part of this change; preserve and respect the current super_admin bootstrap logic.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "user-msg-1"
+        ],
+        "quotes": [
+          "IMPORTANT SAFETY\n- Do NOT delete existing users.\n- Do NOT change existing roles or approvals.\n- Respect current super_admin bootstrap logic."
+        ]
+      },
+      "acceptanceCriteria": [
+        "No migration or code path deletes user documents.",
+        "No migration or code path changes user.role or user.approved values as part of implementing the new flow (outside of existing explicit admin actions, if they remain available and guarded).",
+        "The first-user bootstrap behavior for super_admin remains unchanged."
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "text": "Apply a cohesive, non-blue/non-purple visual theme across the updated /chat and /users experiences (colors, typography, spacing), keeping the UI consistent with the existing Tailwind + shadcn components and ensuring the FAB is visually prominent and accessible.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "user-msg-1"
+        ]
+      },
+      "acceptanceCriteria": [
+        "/chat and /users share a consistent visual style (typography, spacing, button styling).",
+        "The FAB meets basic accessibility expectations (keyboard focusable, visible contrast, clear hit area)."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/components/ui (read-only).",
-    "Do not modify immutable hook files listed in SYSTEM_CONTEXT (compose around them instead).",
-    "Keep backend as a single Motoko actor (no new backend services)."
+    "Keep all backend logic within the existing single Motoko actor (backend/main.mo); only add a migration file if state schema changes are strictly required.",
+    "Do not edit files under frontend/src/components/ui (read-only shadcn components).",
+    "Do not edit immutable frontend paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx.",
+    "Use English for all user-facing text.",
+    "Do not delete existing users.",
+    "Do not change existing roles or approvals.",
+    "Respect current super_admin bootstrap logic."
   ],
   "nonGoals": [
-    "Implementing actual chat functionality beyond existing placeholder UI.",
-    "Adding new authentication providers or changing the auth system beyond the specified routing/menu/branding fixes.",
-    "Redesigning the admin area information architecture beyond enabling the specified access paths."
+    "Implementing third-party auth providers beyond the existing Internet Identity/Firebase setup.",
+    "Adding group chats or real-time websocket-based notifications (continue using existing polling approach).",
+    "Building new admin management features beyond navigation + access separation described here."
   ],
   "imageRequirements": {
     "required": [],
@@ -113,9 +190,7 @@
   "userProfileUpdate": {
     "goalsToAdd": [],
     "goalsToRemove": [],
-    "preferencesToAdd": [
-      "Use English for any user-facing text in the build request."
-    ],
+    "preferencesToAdd": [],
     "preferencesToRemove": [],
     "miscToAdd": [],
     "miscToRemove": [],

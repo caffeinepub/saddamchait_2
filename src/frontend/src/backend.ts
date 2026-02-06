@@ -93,6 +93,13 @@ export interface UserApprovalInfo {
     status: ApprovalStatus;
     principal: Principal;
 }
+export interface ChatRequest {
+    status: ChatRequestStatus;
+    toUid: Principal;
+    createdAt: bigint;
+    fromUid: Principal;
+}
+export type ChatRequestId = bigint;
 export interface UserProfile {
     name: string;
 }
@@ -101,6 +108,11 @@ export enum ApprovalStatus {
     approved = "approved",
     rejected = "rejected"
 }
+export enum ChatRequestStatus {
+    pending = "pending",
+    rejected = "rejected",
+    accepted = "accepted"
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -108,18 +120,26 @@ export enum UserRole {
 }
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    acceptChatRequest(requestId: ChatRequestId): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getChatRequest(requestId: ChatRequestId): Promise<ChatRequest | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
+    listAcceptedChats(): Promise<Array<Principal>>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
+    listIncomingChatRequests(): Promise<Array<[ChatRequestId, ChatRequest]>>;
+    listOutgoingChatRequests(): Promise<Array<[ChatRequestId, ChatRequest]>>;
+    refreshAdmins(): Promise<Array<Principal>>;
+    rejectChatRequest(requestId: ChatRequestId): Promise<void>;
     requestApproval(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    sendChatRequest(toUid: Principal): Promise<ChatRequestId>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
 }
-import type { ApprovalStatus as _ApprovalStatus, UserApprovalInfo as _UserApprovalInfo, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { ApprovalStatus as _ApprovalStatus, ChatRequest as _ChatRequest, ChatRequestId as _ChatRequestId, ChatRequestStatus as _ChatRequestStatus, UserApprovalInfo as _UserApprovalInfo, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -133,6 +153,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor._initializeAccessControlWithSecret(arg0);
+            return result;
+        }
+    }
+    async acceptChatRequest(arg0: ChatRequestId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.acceptChatRequest(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.acceptChatRequest(arg0);
             return result;
         }
     }
@@ -178,6 +212,20 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n4(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getChatRequest(arg0: ChatRequestId): Promise<ChatRequest | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getChatRequest(arg0);
+                return from_candid_opt_n6(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getChatRequest(arg0);
+            return from_candid_opt_n6(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -220,18 +268,88 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async listAcceptedChats(): Promise<Array<Principal>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listAcceptedChats();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listAcceptedChats();
+            return result;
+        }
+    }
     async listApprovals(): Promise<Array<UserApprovalInfo>> {
         if (this.processError) {
             try {
                 const result = await this.actor.listApprovals();
-                return from_candid_vec_n6(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.listApprovals();
-            return from_candid_vec_n6(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async listIncomingChatRequests(): Promise<Array<[ChatRequestId, ChatRequest]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listIncomingChatRequests();
+                return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listIncomingChatRequests();
+            return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async listOutgoingChatRequests(): Promise<Array<[ChatRequestId, ChatRequest]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listOutgoingChatRequests();
+                return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listOutgoingChatRequests();
+            return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async refreshAdmins(): Promise<Array<Principal>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.refreshAdmins();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.refreshAdmins();
+            return result;
+        }
+    }
+    async rejectChatRequest(arg0: ChatRequestId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.rejectChatRequest(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.rejectChatRequest(arg0);
+            return result;
         }
     }
     async requestApproval(): Promise<void> {
@@ -262,26 +380,46 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async setApproval(arg0: Principal, arg1: ApprovalStatus): Promise<void> {
+    async sendChatRequest(arg0: Principal): Promise<ChatRequestId> {
         if (this.processError) {
             try {
-                const result = await this.actor.setApproval(arg0, to_candid_ApprovalStatus_n11(this._uploadFile, this._downloadFile, arg1));
+                const result = await this.actor.sendChatRequest(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.setApproval(arg0, to_candid_ApprovalStatus_n11(this._uploadFile, this._downloadFile, arg1));
+            const result = await this.actor.sendChatRequest(arg0);
+            return result;
+        }
+    }
+    async setApproval(arg0: Principal, arg1: ApprovalStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setApproval(arg0, to_candid_ApprovalStatus_n18(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setApproval(arg0, to_candid_ApprovalStatus_n18(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
 }
-function from_candid_ApprovalStatus_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApprovalStatus): ApprovalStatus {
+function from_candid_ApprovalStatus_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApprovalStatus): ApprovalStatus {
+    return from_candid_variant_n15(_uploadFile, _downloadFile, value);
+}
+function from_candid_ChatRequestStatus_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ChatRequestStatus): ChatRequestStatus {
     return from_candid_variant_n10(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserApprovalInfo_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserApprovalInfo): UserApprovalInfo {
+function from_candid_ChatRequest_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ChatRequest): ChatRequest {
     return from_candid_record_n8(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserApprovalInfo_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserApprovalInfo): UserApprovalInfo {
+    return from_candid_record_n13(_uploadFile, _downloadFile, value);
 }
 function from_candid_UserRole_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
     return from_candid_variant_n5(_uploadFile, _downloadFile, value);
@@ -289,7 +427,10 @@ function from_candid_UserRole_n4(_uploadFile: (file: ExternalBlob) => Promise<Ui
 function from_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ChatRequest]): ChatRequest | null {
+    return value.length === 0 ? null : from_candid_ChatRequest_n7(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     status: _ApprovalStatus;
     principal: Principal;
 }): {
@@ -297,11 +438,44 @@ function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint
     principal: Principal;
 } {
     return {
-        status: from_candid_ApprovalStatus_n9(_uploadFile, _downloadFile, value.status),
+        status: from_candid_ApprovalStatus_n14(_uploadFile, _downloadFile, value.status),
         principal: value.principal
     };
 }
+function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    status: _ChatRequestStatus;
+    toUid: Principal;
+    createdAt: bigint;
+    fromUid: Principal;
+}): {
+    status: ChatRequestStatus;
+    toUid: Principal;
+    createdAt: bigint;
+    fromUid: Principal;
+} {
+    return {
+        status: from_candid_ChatRequestStatus_n9(_uploadFile, _downloadFile, value.status),
+        toUid: value.toUid,
+        createdAt: value.createdAt,
+        fromUid: value.fromUid
+    };
+}
+function from_candid_tuple_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [_ChatRequestId, _ChatRequest]): [ChatRequestId, ChatRequest] {
+    return [
+        value[0],
+        from_candid_ChatRequest_n7(_uploadFile, _downloadFile, value[1])
+    ];
+}
 function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    pending: null;
+} | {
+    rejected: null;
+} | {
+    accepted: null;
+}): ChatRequestStatus {
+    return "pending" in value ? ChatRequestStatus.pending : "rejected" in value ? ChatRequestStatus.rejected : "accepted" in value ? ChatRequestStatus.accepted : value;
+}
+function from_candid_variant_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     pending: null;
 } | {
     approved: null;
@@ -319,16 +493,19 @@ function from_candid_variant_n5(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
-function from_candid_vec_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_UserApprovalInfo>): Array<UserApprovalInfo> {
-    return value.map((x)=>from_candid_UserApprovalInfo_n7(_uploadFile, _downloadFile, x));
+function from_candid_vec_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_UserApprovalInfo>): Array<UserApprovalInfo> {
+    return value.map((x)=>from_candid_UserApprovalInfo_n12(_uploadFile, _downloadFile, x));
 }
-function to_candid_ApprovalStatus_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ApprovalStatus): _ApprovalStatus {
-    return to_candid_variant_n12(_uploadFile, _downloadFile, value);
+function from_candid_vec_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<[_ChatRequestId, _ChatRequest]>): Array<[ChatRequestId, ChatRequest]> {
+    return value.map((x)=>from_candid_tuple_n17(_uploadFile, _downloadFile, x));
+}
+function to_candid_ApprovalStatus_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ApprovalStatus): _ApprovalStatus {
+    return to_candid_variant_n19(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_variant_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ApprovalStatus): {
+function to_candid_variant_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ApprovalStatus): {
     pending: null;
 } | {
     approved: null;

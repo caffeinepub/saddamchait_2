@@ -5,8 +5,8 @@ import SignupScreen from './screens/SignupScreen';
 import PasswordResetScreen from './screens/PasswordResetScreen';
 import PendingApprovalScreen from './screens/PendingApprovalScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import UsersScreen from './screens/UsersScreen';
 import ChatScreen from './screens/ChatScreen';
-import HomeScreen from './screens/HomeScreen';
 import AdminDashboardScreen from './screens/admin/AdminDashboardScreen';
 import AdminUsersScreen from './screens/admin/AdminUsersScreen';
 import AdminChatsScreen from './screens/admin/AdminChatsScreen';
@@ -14,17 +14,16 @@ import AdminReportsScreen from './screens/admin/AdminReportsScreen';
 import AdminSettingsScreen from './screens/admin/AdminSettingsScreen';
 import AppHeader from './components/layout/AppHeader';
 import AuthenticatedRouteGuard from './components/auth/AuthenticatedRouteGuard';
-import SuperAdminRouteGuard from './components/auth/SuperAdminRouteGuard';
 import { useFirebaseAuthUser } from './hooks/useFirebaseAuthUser';
 
 const queryClient = new QueryClient();
 
-type Route = '/login' | '/signup' | '/reset' | '/pending-approval' | '/profile' | '/chat' | '/home' | '/admin' | '/admin/users' | '/admin/chats' | '/admin/reports' | '/admin/settings';
+type Route = '/login' | '/signup' | '/reset' | '/pending-approval' | '/profile' | '/users' | '/chat' | '/admin' | '/admin/users' | '/admin/chats' | '/admin/reports' | '/admin/settings';
 
 function AppContent() {
   const [currentRoute, setCurrentRoute] = useState<Route>(() => {
     const path = window.location.pathname as Route;
-    const validRoutes = ['/login', '/signup', '/reset', '/pending-approval', '/profile', '/chat', '/home', '/admin', '/admin/users', '/admin/chats', '/admin/reports', '/admin/settings'];
+    const validRoutes = ['/login', '/signup', '/reset', '/pending-approval', '/profile', '/users', '/chat', '/admin', '/admin/users', '/admin/chats', '/admin/reports', '/admin/settings'];
     if (validRoutes.includes(path)) {
       return path;
     }
@@ -36,7 +35,7 @@ function AppContent() {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname as Route;
-      const validRoutes = ['/login', '/signup', '/reset', '/pending-approval', '/profile', '/chat', '/home', '/admin', '/admin/users', '/admin/chats', '/admin/reports', '/admin/settings'];
+      const validRoutes = ['/login', '/signup', '/reset', '/pending-approval', '/profile', '/users', '/chat', '/admin', '/admin/users', '/admin/chats', '/admin/reports', '/admin/settings'];
       if (validRoutes.includes(path)) {
         setCurrentRoute(path);
       } else {
@@ -79,13 +78,13 @@ function AppContent() {
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
             <ProfileScreen />
           </AuthenticatedRouteGuard>
+        ) : currentRoute === '/users' ? (
+          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
+            <UsersScreen onNavigate={navigate} />
+          </AuthenticatedRouteGuard>
         ) : currentRoute === '/chat' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
-            <ChatScreen />
-          </AuthenticatedRouteGuard>
-        ) : currentRoute === '/home' ? (
-          <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
-            <HomeScreen />
+            <ChatScreen onNavigate={navigate} />
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
@@ -93,9 +92,7 @@ function AppContent() {
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/users' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>
-            <SuperAdminRouteGuard onUnauthorized={() => navigate('/admin')}>
-              <AdminUsersScreen onNavigate={navigate} />
-            </SuperAdminRouteGuard>
+            <AdminUsersScreen onNavigate={navigate} />
           </AuthenticatedRouteGuard>
         ) : currentRoute === '/admin/chats' ? (
           <AuthenticatedRouteGuard onUnauthorized={() => navigate('/login')}>

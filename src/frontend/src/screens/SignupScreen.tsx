@@ -2,8 +2,8 @@ import { useState, useRef, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Camera, Image as ImageIcon, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Camera, Image as ImageIcon, X, AlertCircle } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useCamera } from '@/camera/useCamera';
 import { processProfileImage, type ProcessedImage } from '@/lib/profileImageProcessing';
@@ -12,7 +12,7 @@ import { getFirebaseErrorMessage } from '@/lib/firebaseErrorMessages';
 
 interface SignupScreenProps {
   onNavigateToLogin: () => void;
-  onSignupSuccess: (redirectTo: '/admin/users' | '/pending-approval') => void;
+  onSignupSuccess: (redirectTo: '/chat' | '/pending-approval') => void;
 }
 
 export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: SignupScreenProps) {
@@ -162,8 +162,8 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
       if (result.success) {
         // Redirect based on whether this was the first user
         if (result.isFirstUser) {
-          console.log('SignupScreen - First user, redirecting to /admin/users');
-          onSignupSuccess('/admin/users');
+          console.log('SignupScreen - First user (super_admin, approved), redirecting to /chat');
+          onSignupSuccess('/chat');
         } else {
           console.log('SignupScreen - Not first user, redirecting to /pending-approval');
           onSignupSuccess('/pending-approval');

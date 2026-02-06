@@ -212,6 +212,39 @@ export async function getAllUsers(): Promise<Array<{ uid: string; name: string; 
   }
 }
 
+// Helper: Get approved users (including current user)
+export async function getApprovedUsers(currentUid: string): Promise<Array<{ uid: string; name: string; email: string; photoURL: string; role: string; approved: boolean }>> {
+  try {
+    await waitForFirebase();
+    const db = getDb();
+    
+    const modules = await loadFirebaseModules();
+    const { collection, query, where, getDocs } = modules.firestore;
+    
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('approved', '==', true));
+    const snapshot = await getDocs(q);
+    
+    const users: Array<{ uid: string; name: string; email: string; photoURL: string; role: string; approved: boolean }> = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      users.push({
+        uid: doc.id,
+        name: data.name ?? '',
+        email: data.email ?? '',
+        photoURL: data.photoURL ?? '',
+        role: data.role ?? 'user',
+        approved: true,
+      });
+    });
+    
+    return users;
+  } catch (error) {
+    console.error('getApprovedUsers - Error fetching users:', error);
+    return [];
+  }
+}
+
 // Helper: Update user approval status (admin only)
 export async function updateUserApproval(uid: string, approved: boolean): Promise<void> {
   await waitForFirebase();
@@ -240,18 +273,204 @@ export async function updateUserRole(uid: string, role: 'user' | 'admin'): Promi
   console.log('updateUserRole - Updated role for uid:', uid, 'role:', role);
 }
 
-// Helper: Delete user profile (super_admin only)
-export async function deleteUserProfile(uid: string): Promise<void> {
+// Chat Request Functions
+
+export async function sendChatRequest(fromUserId: string, toUserId: string): Promise<void> {
   await waitForFirebase();
   const db = getDb();
   
   const modules = await loadFirebaseModules();
-  const { doc, deleteDoc } = modules.firestore;
+  const { collection, addDoc, serverTimestamp, query, where, getDocs } = modules.firestore;
   
-  const userDocRef = doc(db, 'users', uid);
-  await deleteDoc(userDocRef);
+  // Check if a pending request already exists
+  const requestsRef = collection(db, 'chat_requests');
+  const q = query(
+    requestsRef,
+    where('fromUserId', '==', fromUserId),
+    where('toUserId', '==', toUserId),
+    where('status', '==', 'pending')
+  );
+  const snapshot = await getDocs(q);
   
-  console.log('deleteUserProfile - Deleted profile for uid:', uid);
+  if (!snapshot.empty) {
+    console.log('Pending chat request already exists');
+    throw new Error('A pending chat request already exists');
+  }
+  
+  await addDoc(requestsRef, {
+    fromUserId,
+    fromUid: fromUserId,
+    toUserId,
+    toUid: toUserId,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+  });
+  
+  console.log('sendChatRequest - Request sent from', fromUserId, 'to', toUserId);
+}
+
+export async function getChatRequests(userId: string): Promise<Array<{ id: string; fromUserId: string; toUserId: string; status: string; createdAt: any }>> {
+  try {
+    await waitForFirebase();
+    const db = getDb();
+    
+    const modules = await loadFirebaseModules();
+    const { collection, query, where, getDocs, or } = modules.firestore;
+    
+    const requestsRef = collection(db, 'chat_requests');
+    const q = query(
+      requestsRef,
+      or(
+        where('fromUserId', '==', userId),
+        where('toUserId', '==', userId)
+      )
+    );
+    const snapshot = await getDocs(q);
+    
+    const requests: Array<{ id: string; fromUserId: string; toUserId: string; status: string; createdAt: any }> = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      requests.push({
+        id: doc.id,
+        fromUserId: data.fromUserId,
+        toUserId: data.toUserId,
+        status: data.status,
+        createdAt: data.createdAt,
+      });
+    });
+    
+    return requests;
+  } catch (error) {
+    console.error('getChatRequests - Error:', error);
+    return [];
+  }
+}
+
+export async function respondToChatRequest(requestId: string, accept: boolean): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, updateDoc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs } = modules.firestore;
+  
+  const requestRef = doc(db, 'chat_requests', requestId);
+  const requestDoc = await getDoc(requestRef);
+  
+  if (!requestDoc.exists()) {
+    throw new Error('Request not found');
+  }
+  
+  const requestData = requestDoc.data();
+  
+  if (accept) {
+    // Update request status
+    await updateDoc(requestRef, { status: 'accepted' });
+    
+    // Check if chat already exists
+    const chatsRef = collection(db, 'chats');
+    const q = query(chatsRef, where('members', 'array-contains', requestData.fromUserId));
+    const snapshot = await getDocs(q);
+    
+    let chatExists = false;
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.members.includes(requestData.toUserId)) {
+        chatExists = true;
+      }
+    });
+    
+    if (!chatExists) {
+      // Create chat
+      await addDoc(chatsRef, {
+        members: [requestData.fromUserId, requestData.toUserId],
+        createdAt: serverTimestamp(),
+      });
+      console.log('respondToChatRequest - Chat created between', requestData.fromUserId, 'and', requestData.toUserId);
+    }
+  } else {
+    // Update request status to rejected
+    await updateDoc(requestRef, { status: 'rejected' });
+  }
+  
+  console.log('respondToChatRequest - Request', accept ? 'accepted' : 'rejected');
+}
+
+// Chat Functions
+
+export async function getUserChats(userId: string): Promise<Array<{ id: string; members: string[]; createdAt: any }>> {
+  try {
+    await waitForFirebase();
+    const db = getDb();
+    
+    const modules = await loadFirebaseModules();
+    const { collection, query, where, getDocs } = modules.firestore;
+    
+    const chatsRef = collection(db, 'chats');
+    const q = query(chatsRef, where('members', 'array-contains', userId));
+    const snapshot = await getDocs(q);
+    
+    const chats: Array<{ id: string; members: string[]; createdAt: any }> = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      chats.push({
+        id: doc.id,
+        members: data.members,
+        createdAt: data.createdAt,
+      });
+    });
+    
+    return chats;
+  } catch (error) {
+    console.error('getUserChats - Error:', error);
+    return [];
+  }
+}
+
+export async function getChatMessages(chatId: string): Promise<Array<{ id: string; senderId: string; text: string; createdAt: any }>> {
+  try {
+    await waitForFirebase();
+    const db = getDb();
+    
+    const modules = await loadFirebaseModules();
+    const { collection, query, orderBy, getDocs } = modules.firestore;
+    
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    const snapshot = await getDocs(q);
+    
+    const messages: Array<{ id: string; senderId: string; text: string; createdAt: any }> = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      messages.push({
+        id: doc.id,
+        senderId: data.senderId,
+        text: data.text,
+        createdAt: data.createdAt,
+      });
+    });
+    
+    return messages;
+  } catch (error) {
+    console.error('getChatMessages - Error:', error);
+    return [];
+  }
+}
+
+export async function sendMessage(chatId: string, senderId: string, text: string): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { collection, addDoc, serverTimestamp } = modules.firestore;
+  
+  const messagesRef = collection(db, 'chats', chatId, 'messages');
+  await addDoc(messagesRef, {
+    senderId,
+    text,
+    createdAt: serverTimestamp(),
+  });
+  
+  console.log('sendMessage - Message sent to chat', chatId);
 }
 
 // Helper: Sign up with email and password
