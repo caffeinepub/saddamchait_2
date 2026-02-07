@@ -34,18 +34,6 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
     source: authUser?.displayName ? 'Firebase Auth' : 'Firestore users/{uid}'
   });
 
-  const isSuperAdmin = userProfile?.role === 'super_admin';
-
-  const handleAvatarClick = () => {
-    if (isSuperAdmin) {
-      console.log('AppHeader - Super Admin avatar clicked, navigating to /admin/users');
-      onNavigate('/admin/users');
-    } else {
-      console.log('AppHeader - Non-super-admin avatar clicked, navigating to /profile');
-      onNavigate('/profile');
-    }
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
@@ -59,17 +47,7 @@ export default function AppHeader({ onNavigate }: AppHeaderProps) {
         </div>
 
         {!profileLoading && userProfile && (
-          <ProfileMenu userProfile={userProfile} authUser={authUser} onNavigate={onNavigate}>
-            <button 
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              onClick={handleAvatarClick}
-            >
-              <Avatar className="h-8 w-8">
-                {hasPhoto && <AvatarImage src={photoURL} alt={displayName} />}
-                <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
-              </Avatar>
-            </button>
-          </ProfileMenu>
+          <ProfileMenu onNavigate={onNavigate} />
         )}
       </div>
     </header>

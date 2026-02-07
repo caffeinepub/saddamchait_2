@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useFirestorePendingUsersList } from '@/hooks/useFirestorePendingUsersList';
+import { useFirestoreUsersList } from '@/hooks/useFirestoreUsersList';
 import { useFirestoreUserProfile } from '@/hooks/useFirestoreUserProfile';
 import AdminLayout from './AdminLayout';
 import AdminRouteGuard from '@/components/auth/AdminRouteGuard';
@@ -15,7 +15,7 @@ interface AdminUsersScreenProps {
 }
 
 export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) {
-  const { data: users, isLoading, approveUser, rejectUser, blockUser, promoteToHelperAdmin, isUpdating } = useFirestorePendingUsersList();
+  const { data: users, isLoading, approveUser, rejectUser, blockUser, promoteToHelperAdmin, deleteUser, isUpdating } = useFirestoreUsersList();
   const { data: currentUserProfile } = useFirestoreUserProfile();
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
@@ -30,20 +30,41 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
     return fullName.slice(0, 2).toUpperCase();
   };
 
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('en-US', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      });
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const getStatusBadge = (user: any) => {
+    if (user.blocked) return <Badge variant="destructive">Blocked</Badge>;
+    if (user.rejected) return <Badge variant="destructive">Rejected</Badge>;
+    if (user.approved) return <Badge variant="default" className="bg-green-600">Approved</Badge>;
+    return <Badge variant="secondary">Pending</Badge>;
+  };
+
   return (
     <AdminRouteGuard onUnauthorized={() => onNavigate('/chat')}>
       <AdminLayout currentPath="/admin/users" onNavigate={onNavigate}>
         <div className="container mx-auto p-6 space-y-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Pending Users</h1>
-            <p className="text-muted-foreground">Review and approve user registrations</p>
+            <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+            <p className="text-muted-foreground">Manage user accounts and permissions</p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Pending Approvals</CardTitle>
+              <CardTitle>All Users</CardTitle>
               <CardDescription>
-                Users waiting for approval to access the application
+                Complete list of all registered users with their details and status
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -60,17 +81,16 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
                   ))}
                 </div>
               ) : users && users.length > 0 ? (
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>User</TableHead>
-                        <TableHead>Age</TableHead>
-                        <TableHead>Relation</TableHead>
-                        {isSuperAdmin && <TableHead>Phone</TableHead>}
-                        {isSuperAdmin && <TableHead>Email</TableHead>}
-                        {isSuperAdmin && <TableHead>Role</TableHead>}
+                        <TableHead>Email</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Joined</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -79,28 +99,25 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
                         <TableRow key={user.uid}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
+                              <Avatar className="h-10 w-10 shrink-0">
                                 <AvatarImage src={user.photoURL} alt={user.fullName} />
                                 <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
                               </Avatar>
                               <span className="font-medium">{user.fullName}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{user.age}</TableCell>
-                          <TableCell className="capitalize">{user.relation}</TableCell>
-                          {isSuperAdmin && <TableCell className="text-muted-foreground">{user.phoneNumber}</TableCell>}
-                          {isSuperAdmin && <TableCell className="text-muted-foreground">{user.email}</TableCell>}
-                          {isSuperAdmin && (
-                            <TableCell>
-                              <Badge variant="outline" className="capitalize">
-                                {user.role.replace('_', ' ')}
-                              </Badge>
-                            </TableCell>
-                          )}
+                          <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                          <TableCell className="text-muted-foreground">{user.phoneNumber}</TableCell>
                           <TableCell>
-                            <Badge variant={user.rejected ? 'destructive' : user.blocked ? 'destructive' : 'secondary'}>
-                              {user.rejected ? 'Rejected' : user.blocked ? 'Blocked' : 'Pending'}
+                            <Badge variant="outline" className="capitalize">
+                              {user.role.replace('_', ' ')}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(user)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(user.createdAt)}
                           </TableCell>
                           <TableCell className="text-right">
                             <UserRowActions
@@ -119,6 +136,7 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
                               onReject={() => rejectUser(user.uid)}
                               onBlock={() => blockUser(user.uid)}
                               onPromoteToHelperAdmin={() => promoteToHelperAdmin(user.uid)}
+                              onDelete={() => deleteUser(user.uid)}
                               onViewDetails={() => setSelectedUser(user)}
                               isUpdating={isUpdating}
                             />
@@ -130,7 +148,7 @@ export default function AdminUsersScreen({ onNavigate }: AdminUsersScreenProps) 
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No pending users
+                  No users found
                 </div>
               )}
             </CardContent>

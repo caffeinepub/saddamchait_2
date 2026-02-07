@@ -1,24 +1,110 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T23:25:10.048Z",
+  "generatedAt": "2026-02-07T22:21:28.818Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 7,
+    "implemented": 7,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update Firestore security rules to allow a newly authenticated user to CREATE their own profile document during signup by permitting writes when `request.auth != null` and `request.auth.uid == userId` for the profile document path used by the app (`users/{userId}`). Do not change any signup flow logic, admin/helper logic, or add new features.",
+        "summary": "Update the Admin Users screen so an admin ALWAYS sees the full list of users (approved + unapproved) in the existing /admin/users screen (do not create a new admin screen), while preserving the current Admin layout and actions menu structure.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/firestore.rules"
+          "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "frontend/src/hooks/useFirestoreUsersList.ts"
         ],
         "matchedFiles": [
-          "frontend/firestore.rules"
+          "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "frontend/src/hooks/useFirestoreUsersList.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Ensure that on the Admin Users list view, user details remain permanently visible in the list row (not only inside a dialog): photo, name, email, phone number, and signup date/time (from users.createdAt) must be visible for every user in the list (role-based hiding is not allowed for these fields).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/screens/admin/AdminUsersScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/screens/admin/AdminUsersScreen.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Keep Admin actions functional at all times on /admin/users for every user: approve, block, delete, and make helper admin (promote) must work without breaking the list UI or requiring a page refresh; the list must update after each action.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/admin/UserRowActions.tsx",
+          "frontend/src/hooks/useFirestoreUsersList.ts",
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/screens/admin/AdminUsersScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/admin/UserRowActions.tsx",
+          "frontend/src/hooks/useFirestoreUsersList.ts",
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/screens/admin/AdminUsersScreen.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Enforce the exact Chat Request UI logic on the approved users list: (1) any user can send a chat request to another approved user; (2) the sender must ONLY see “Request Sent” after sending; (3) the receiver must see Accept/Reject ONLY when request.toUserId === currentUserId AND request.status === \"pending\".",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/screens/users/ApprovedUsersListView.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/screens/users/ApprovedUsersListView.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "After a receiver Accepts a pending chat request, open a permanent private 1-to-1 chat room between the two users and display a standard chat UI with message list + chat input; the chat must remain accessible in the future (not a temporary session).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/screens/users/ApprovedUsersListView.tsx",
+          "frontend/src/screens/ChatScreen.tsx",
+          "frontend/src/components/chat/ChatRoomView.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/screens/users/ApprovedUsersListView.tsx",
+          "frontend/src/screens/ChatScreen.tsx",
+          "frontend/src/components/chat/ChatRoomView.tsx"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "After a receiver Rejects a pending chat request: (1) the sender must clearly see that the request was rejected; (2) the sender can re-send a request to the same receiver ONLY after 24 hours have passed since the rejection.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/screens/users/ApprovedUsersListView.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/firebase.ts",
+          "frontend/src/screens/users/ApprovedUsersListView.tsx"
+        ]
+      },
+      {
+        "id": "REQ-7",
+        "summary": "Ensure changes are verifiably visible in Draft: after implementing each missing piece above, update the relevant screens so that the behavior change can be confirmed immediately in the Draft preview without requiring undocumented steps.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "frontend/src/screens/users/ApprovedUsersListView.tsx",
+          "frontend/src/screens/ChatScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "frontend/src/screens/users/ApprovedUsersListView.tsx",
+          "frontend/src/screens/ChatScreen.tsx"
         ]
       }
     ]
@@ -28,7 +114,16 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/firestore.rules",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/UserRowActions.tsx",
+    "frontend/src/components/chat/ChatRoomView.tsx",
+    "frontend/src/components/layout/AppHeader.tsx",
+    "frontend/src/components/layout/ProfileMenu.tsx",
+    "frontend/src/hooks/useFirestoreUsersList.ts",
+    "frontend/src/lib/firebase.ts",
+    "frontend/src/screens/ChatScreen.tsx",
+    "frontend/src/screens/admin/AdminUsersScreen.tsx",
+    "frontend/src/screens/users/ApprovedUsersListView.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

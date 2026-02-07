@@ -20,6 +20,8 @@ interface FirebaseFirestore {
 interface FirebaseUser {
   uid: string;
   email: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
 }
 
 interface UserCredential {
@@ -74,6 +76,39 @@ async function loadFirebaseModules() {
 // Initialize Firebase (already done in HTML, but we export references)
 export const getAuth = () => window.__FIREBASE_AUTH__;
 export const getDb = () => window.__FIREBASE_FIRESTORE__;
+
+// Firebase Auth Functions
+
+export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
+  await waitForFirebase();
+  const auth = getAuth();
+  
+  const modules = await loadFirebaseModules();
+  const { signInWithEmailAndPassword } = modules.auth;
+  
+  return await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function signUpWithEmail(email: string, password: string): Promise<UserCredential> {
+  await waitForFirebase();
+  const auth = getAuth();
+  
+  const modules = await loadFirebaseModules();
+  const { createUserWithEmailAndPassword } = modules.auth;
+  
+  return await createUserWithEmailAndPassword(auth, email, password);
+}
+
+export async function signOutUser(): Promise<void> {
+  await waitForFirebase();
+  const auth = getAuth();
+  
+  const modules = await loadFirebaseModules();
+  const { signOut } = modules.auth;
+  
+  await signOut(auth);
+  console.log('signOutUser - User signed out successfully');
+}
 
 // Helper: Check if this is the first user
 export async function isFirstUser(): Promise<boolean> {
@@ -354,7 +389,7 @@ export async function getPendingUsers(): Promise<Array<{ uid: string; fullName: 
   }
 }
 
-// Helper: Get approved users (including current user)
+// Helper: Get approved users (excluding current user)
 export async function getApprovedUsers(currentUid: string): Promise<Array<{ uid: string; fullName: string; email: string; photoURL: string; role: string; approved: boolean }>> {
   try {
     await waitForFirebase();
@@ -369,6 +404,9 @@ export async function getApprovedUsers(currentUid: string): Promise<Array<{ uid:
     
     const users: Array<{ uid: string; fullName: string; email: string; photoURL: string; role: string; approved: boolean }> = [];
     snapshot.forEach((doc) => {
+      // Exclude current user from the list
+      if (doc.id === currentUid) return;
+      
       const data = doc.data();
       const rawRole = data.role ?? 'user';
       const normalizedRole = normalizeRole(rawRole);
@@ -452,9 +490,24 @@ export async function promoteToHelperAdmin(uid: string): Promise<void> {
   const userDocRef = doc(db, 'users', uid);
   await updateDoc(userDocRef, { 
     role: 'helper_admin',
+    approved: true,
   });
   
   console.log('promoteToHelperAdmin - Promoted user uid:', uid, 'to helper_admin');
+}
+
+// Helper: Delete user (super_admin only)
+export async function deleteUser(uid: string): Promise<void> {
+  await waitForFirebase();
+  const db = getDb();
+  
+  const modules = await loadFirebaseModules();
+  const { doc, deleteDoc } = modules.firestore;
+  
+  const userDocRef = doc(db, 'users', uid);
+  await deleteDoc(userDocRef);
+  
+  console.log('deleteUser - Deleted user uid:', uid);
 }
 
 // Helper: Update user approval status (admin only) - DEPRECATED, use specific functions
@@ -492,28 +545,42 @@ export async function sendChatRequest(fromUserId: string, toUserId: string): Pro
   const db = getDb();
   
   const modules = await loadFirebaseModules();
-  const { collection, addDoc, serverTimestamp, query, where, getDocs } = modules.firestore;
+  const { collection, addDoc, serverTimestamp, query, where, getDocs, or } = modules.firestore;
   
-  // Check if a pending request already exists
+  // Check if any request already exists between these users (pending, accepted, or recently rejected)
   const requestsRef = collection(db, 'chat_requests');
   const q = query(
     requestsRef,
     where('fromUserId', '==', fromUserId),
-    where('toUserId', '==', toUserId),
-    where('status', '==', 'pending')
+    where('toUserId', '==', toUserId)
   );
   const snapshot = await getDocs(q);
   
   if (!snapshot.empty) {
-    console.log('Pending chat request already exists');
-    throw new Error('A pending chat request already exists');
+    const existingRequest = snapshot.docs[0].data();
+    
+    // If pending or accepted, don't allow resend
+    if (existingRequest.status === 'pending' || existingRequest.status === 'accepted') {
+      console.log('Chat request already exists with status:', existingRequest.status);
+      throw new Error('A chat request already exists');
+    }
+    
+    // If rejected, check 24-hour cooldown
+    if (existingRequest.status === 'rejected' && existingRequest.rejectedAt) {
+      const rejectedTime = existingRequest.rejectedAt.toMillis ? existingRequest.rejectedAt.toMillis() : existingRequest.rejectedAt;
+      const now = Date.now();
+      const hoursSinceRejection = (now - rejectedTime) / (1000 * 60 * 60);
+      
+      if (hoursSinceRejection < 24) {
+        const hoursRemaining = Math.ceil(24 - hoursSinceRejection);
+        throw new Error(`Please wait ${hoursRemaining} hours before sending another request`);
+      }
+    }
   }
   
   await addDoc(requestsRef, {
     fromUserId,
-    fromUid: fromUserId,
     toUserId,
-    toUid: toUserId,
     status: 'pending',
     createdAt: serverTimestamp(),
   });
@@ -521,7 +588,7 @@ export async function sendChatRequest(fromUserId: string, toUserId: string): Pro
   console.log('sendChatRequest - Request sent from', fromUserId, 'to', toUserId);
 }
 
-export async function getChatRequests(userId: string): Promise<Array<{ id: string; fromUserId: string; toUserId: string; status: string; createdAt: any }>> {
+export async function getChatRequests(userId: string): Promise<Array<{ id: string; fromUserId: string; toUserId: string; status: string; createdAt: any; rejectedAt?: any }>> {
   try {
     await waitForFirebase();
     const db = getDb();
@@ -539,7 +606,7 @@ export async function getChatRequests(userId: string): Promise<Array<{ id: strin
     );
     const snapshot = await getDocs(q);
     
-    const requests: Array<{ id: string; fromUserId: string; toUserId: string; status: string; createdAt: any }> = [];
+    const requests: Array<{ id: string; fromUserId: string; toUserId: string; status: string; createdAt: any; rejectedAt?: any }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
       requests.push({
@@ -548,12 +615,13 @@ export async function getChatRequests(userId: string): Promise<Array<{ id: strin
         toUserId: data.toUserId,
         status: data.status,
         createdAt: data.createdAt,
+        rejectedAt: data.rejectedAt,
       });
     });
     
     return requests;
   } catch (error) {
-    console.error('getChatRequests - Error:', error);
+    console.error('getChatRequests - Error fetching requests:', error);
     return [];
   }
 }
@@ -563,48 +631,45 @@ export async function respondToChatRequest(requestId: string, accept: boolean): 
   const db = getDb();
   
   const modules = await loadFirebaseModules();
-  const { doc, updateDoc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs } = modules.firestore;
+  const { doc, updateDoc, getDoc, collection, addDoc, serverTimestamp } = modules.firestore;
   
-  const requestRef = doc(db, 'chat_requests', requestId);
-  const requestDoc = await getDoc(requestRef);
+  const requestDocRef = doc(db, 'chat_requests', requestId);
+  const requestDoc = await getDoc(requestDocRef);
   
   if (!requestDoc.exists()) {
-    throw new Error('Request not found');
+    throw new Error('Chat request not found');
   }
   
   const requestData = requestDoc.data();
   
   if (accept) {
-    // Update request status
-    await updateDoc(requestRef, { status: 'accepted' });
-    
-    // Check if chat already exists
-    const chatsRef = collection(db, 'chats');
-    const q = query(chatsRef, where('members', 'array-contains', requestData.fromUserId));
-    const snapshot = await getDocs(q);
-    
-    let chatExists = false;
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.members.includes(requestData.toUserId)) {
-        chatExists = true;
-      }
+    // Update request status to accepted
+    await updateDoc(requestDocRef, {
+      status: 'accepted',
+      acceptedAt: serverTimestamp(),
     });
     
-    if (!chatExists) {
-      // Create chat
-      await addDoc(chatsRef, {
-        members: [requestData.fromUserId, requestData.toUserId],
-        createdAt: serverTimestamp(),
-      });
-      console.log('respondToChatRequest - Chat created between', requestData.fromUserId, 'and', requestData.toUserId);
-    }
+    // Create a permanent chat room
+    const chatsRef = collection(db, 'chats');
+    const chatId = [requestData.fromUserId, requestData.toUserId].sort().join('_');
+    
+    await addDoc(chatsRef, {
+      chatId,
+      participants: [requestData.fromUserId, requestData.toUserId],
+      createdAt: serverTimestamp(),
+      lastMessageAt: serverTimestamp(),
+    });
+    
+    console.log('respondToChatRequest - Accepted request and created chat:', chatId);
   } else {
-    // Reject request
-    await updateDoc(requestRef, { status: 'rejected' });
+    // Update request status to rejected with timestamp
+    await updateDoc(requestDocRef, {
+      status: 'rejected',
+      rejectedAt: serverTimestamp(),
+    });
+    
+    console.log('respondToChatRequest - Rejected request:', requestId);
   }
-  
-  console.log('respondToChatRequest - Request', accept ? 'accepted' : 'rejected');
 }
 
 export async function getAcceptedChats(userId: string): Promise<Array<{ chatId: string; otherUserId: string }>> {
@@ -615,18 +680,24 @@ export async function getAcceptedChats(userId: string): Promise<Array<{ chatId: 
     const modules = await loadFirebaseModules();
     const { collection, query, where, getDocs } = modules.firestore;
     
-    const chatsRef = collection(db, 'chats');
-    const q = query(chatsRef, where('members', 'array-contains', userId));
+    const requestsRef = collection(db, 'chat_requests');
+    const q = query(
+      requestsRef,
+      where('status', '==', 'accepted')
+    );
     const snapshot = await getDocs(q);
     
     const chats: Array<{ chatId: string; otherUserId: string }> = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-      const members = data.members as string[];
-      const otherUserId = members.find((id) => id !== userId);
-      if (otherUserId) {
+      
+      // Only include chats where current user is a participant
+      if (data.fromUserId === userId || data.toUserId === userId) {
+        const otherUserId = data.fromUserId === userId ? data.toUserId : data.fromUserId;
+        const chatId = [data.fromUserId, data.toUserId].sort().join('_');
+        
         chats.push({
-          chatId: doc.id,
+          chatId,
           otherUserId,
         });
       }
@@ -634,44 +705,61 @@ export async function getAcceptedChats(userId: string): Promise<Array<{ chatId: 
     
     return chats;
   } catch (error) {
-    console.error('getAcceptedChats - Error:', error);
+    console.error('getAcceptedChats - Error fetching chats:', error);
     return [];
   }
 }
 
-// Auth functions
-export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
-  await waitForFirebase();
-  const auth = getAuth();
-  
-  const modules = await loadFirebaseModules();
-  const { signInWithEmailAndPassword } = modules.auth;
-  
-  return signInWithEmailAndPassword(auth, email, password);
+// Chat Messages Functions
+
+export async function getChatMessages(chatId: string): Promise<Array<{ id: string; senderId: string; text: string; createdAt: any }>> {
+  try {
+    await waitForFirebase();
+    const db = getDb();
+    
+    const modules = await loadFirebaseModules();
+    const { collection, query, where, orderBy, getDocs } = modules.firestore;
+    
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('chatId', '==', chatId),
+      orderBy('createdAt', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    
+    const messages: Array<{ id: string; senderId: string; text: string; createdAt: any }> = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      messages.push({
+        id: doc.id,
+        senderId: data.senderId,
+        text: data.text,
+        createdAt: data.createdAt,
+      });
+    });
+    
+    return messages;
+  } catch (error) {
+    console.error('getChatMessages - Error fetching messages:', error);
+    return [];
+  }
 }
 
-export async function signUpWithEmail(email: string, password: string): Promise<UserCredential> {
+export async function sendMessage(chatId: string, senderId: string, text: string): Promise<void> {
   await waitForFirebase();
-  const auth = getAuth();
+  const db = getDb();
   
   const modules = await loadFirebaseModules();
-  const { createUserWithEmailAndPassword } = modules.auth;
+  const { collection, addDoc, serverTimestamp } = modules.firestore;
   
-  return createUserWithEmailAndPassword(auth, email, password);
-}
-
-export async function signOutUser(): Promise<void> {
-  await waitForFirebase();
-  const auth = getAuth();
+  const messagesRef = collection(db, 'messages');
+  await addDoc(messagesRef, {
+    chatId,
+    senderId,
+    text,
+    createdAt: serverTimestamp(),
+  });
   
-  const modules = await loadFirebaseModules();
-  const { signOut } = modules.auth;
-  
-  return signOut(auth);
-}
-
-export async function getCurrentUser(): Promise<FirebaseUser | null> {
-  await waitForFirebase();
-  const auth = getAuth();
-  return auth.currentUser;
+  console.log('sendMessage - Message sent to chat:', chatId);
 }

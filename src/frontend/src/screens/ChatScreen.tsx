@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Plus } from 'lucide-react';
+import { MessageCircle, Plus, ArrowLeft } from 'lucide-react';
 import { getAcceptedChats, getUserProfile } from '@/lib/firebase';
 import { useFirebaseAuthUser } from '@/hooks/useFirebaseAuthUser';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import ChatRoomView from '@/components/chat/ChatRoomView';
 
 interface ChatScreenProps {
   onNavigate: (route: any) => void;
+  chatId?: string;
 }
 
-export default function ChatScreen({ onNavigate }: ChatScreenProps) {
+export default function ChatScreen({ onNavigate, chatId }: ChatScreenProps) {
   const { authUser } = useFirebaseAuthUser();
-  const [chats, setChats] = useState<Array<{ chatId: string; otherUserId: string; otherUserName: string }>>([]);
+  const [chats, setChats] = useState<Array<{ chatId: string; otherUserId: string; otherUserName: string; otherUserPhoto: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(chatId || null);
+  const [selectedOtherUser, setSelectedOtherUser] = useState<{ uid: string; name: string; photo: string } | null>(null);
 
   useEffect(() => {
     const loadChats = async () => {
@@ -28,11 +33,25 @@ export default function ChatScreen({ onNavigate }: ChatScreenProps) {
             return {
               ...chat,
               otherUserName: profile?.fullName || 'Unknown User',
+              otherUserPhoto: profile?.photoURL || '',
             };
           })
         );
 
         setChats(chatsWithNames);
+        
+        // If chatId is provided in props, auto-select that chat
+        if (chatId) {
+          const selectedChat = chatsWithNames.find(c => c.chatId === chatId);
+          if (selectedChat) {
+            setSelectedChatId(chatId);
+            setSelectedOtherUser({
+              uid: selectedChat.otherUserId,
+              name: selectedChat.otherUserName,
+              photo: selectedChat.otherUserPhoto,
+            });
+          }
+        }
       } catch (error) {
         console.error('Error loading chats:', error);
       } finally {
@@ -41,10 +60,32 @@ export default function ChatScreen({ onNavigate }: ChatScreenProps) {
     };
 
     loadChats();
-  }, [authUser]);
+  }, [authUser, chatId]);
 
   const handleFindUsers = () => {
     onNavigate('/users');
+  };
+
+  const handleSelectChat = (chat: { chatId: string; otherUserId: string; otherUserName: string; otherUserPhoto: string }) => {
+    setSelectedChatId(chat.chatId);
+    setSelectedOtherUser({
+      uid: chat.otherUserId,
+      name: chat.otherUserName,
+      photo: chat.otherUserPhoto,
+    });
+  };
+
+  const handleBackToList = () => {
+    setSelectedChatId(null);
+    setSelectedOtherUser(null);
+  };
+
+  const getInitials = (fullName: string) => {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return fullName.slice(0, 2).toUpperCase();
   };
 
   if (isLoading) {
@@ -58,6 +99,40 @@ export default function ChatScreen({ onNavigate }: ChatScreenProps) {
     );
   }
 
+  // If a chat is selected, show the chat room view
+  if (selectedChatId && selectedOtherUser && authUser) {
+    return (
+      <div className="flex-1 flex flex-col">
+        <div className="border-b bg-background sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-3 flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackToList}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={selectedOtherUser.photo} alt={selectedOtherUser.name} />
+              <AvatarFallback>{getInitials(selectedOtherUser.name)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="font-semibold">{selectedOtherUser.name}</h2>
+              <p className="text-xs text-muted-foreground">Online</p>
+            </div>
+          </div>
+        </div>
+        
+        <ChatRoomView
+          chatId={selectedChatId}
+          currentUserId={authUser.uid}
+          otherUserName={selectedOtherUser.name}
+        />
+      </div>
+    );
+  }
+
+  // Otherwise, show the chat list
   return (
     <div className="flex-1 flex flex-col">
       <main className="container mx-auto px-4 py-8 flex-1">
@@ -84,11 +159,16 @@ export default function ChatScreen({ onNavigate }: ChatScreenProps) {
           ) : (
             <div className="space-y-2">
               {chats.map((chat) => (
-                <Card key={chat.chatId} className="hover:bg-accent cursor-pointer transition-colors">
+                <Card 
+                  key={chat.chatId} 
+                  className="hover:bg-accent cursor-pointer transition-colors"
+                  onClick={() => handleSelectChat(chat)}
+                >
                   <CardContent className="flex items-center gap-4 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                      <MessageCircle className="h-6 w-6 text-primary" />
-                    </div>
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={chat.otherUserPhoto} alt={chat.otherUserName} />
+                      <AvatarFallback>{getInitials(chat.otherUserName)}</AvatarFallback>
+                    </Avatar>
                     <div className="flex-1">
                       <h3 className="font-semibold">{chat.otherUserName}</h3>
                       <p className="text-sm text-muted-foreground">Tap to open chat</p>

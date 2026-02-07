@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-firestore-security-rules-to-allow-a-newly-authenticated-user-to-create-their-own-profile-document-during-signup-by-permitting-writes-when-request-auth-null-and-request-auth-uid-userid-for-the-profile-document-path-used-by-the-app-users-userid-do-not-change-any-signup-flow-logic-admin-helper-logic-or-add-new-features",
-      "featureTitle": "Update Firestore security rules to allow a newly authenticated user to CREATE their own profile document during signup by permitting writes when `request.auth != null` and `request.auth.uid == userId` for the profile document path used by the app (`users/{userId}`). Do not change any signup flow logic, admin/helper logic, or add new features.",
+      "featureId": "feature-update-the-admin-users-screen-so-an-admin-always-sees-the-full-list-of-users-approved-unapproved-in-the-existing-admin-users-screen-do-not-create-a-new-admin-screen-while-preserving-the-current-admin-layout-and-actions-menu-structure",
+      "featureTitle": "Update the Admin Users screen so an admin ALWAYS sees the full list of users (approved + unapproved) in the existing /admin/users screen (do not create a new admin screen), while preserving the current Admin layout and actions menu structure.",
       "files": [
-        "frontend/firestore.rules"
+        "frontend/src/hooks/useFirestoreUsersList.ts",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -19,6 +20,141 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-that-on-the-admin-users-list-view-user-details-remain-permanently-visible-in-the-list-row-not-only-inside-a-dialog-photo-name-email-phone-number-and-signup-date-time-from-users-createdat-must-be-visible-for-every-user-in-the-list-role-based-hiding-is-not-allowed-for-these-fields",
+      "featureTitle": "Ensure that on the Admin Users list view, user details remain permanently visible in the list row (not only inside a dialog): photo, name, email, phone number, and signup date/time (from users.createdAt) must be visible for every user in the list (role-based hiding is not allowed for these fields).",
+      "files": [
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-keep-admin-actions-functional-at-all-times-on-admin-users-for-every-user-approve-block-delete-and-make-helper-admin-promote-must-work-without-breaking-the-list-ui-or-requiring-a-page-refresh-the-list-must-update-after-each-action",
+      "featureTitle": "Keep Admin actions functional at all times on /admin/users for every user: approve, block, delete, and make helper admin (promote) must work without breaking the list UI or requiring a page refresh; the list must update after each action.",
+      "files": [
+        "frontend/src/components/admin/UserRowActions.tsx",
+        "frontend/src/hooks/useFirestoreUsersList.ts",
+        "frontend/src/lib/firebase.ts",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-enforce-the-exact-chat-request-ui-logic-on-the-approved-users-list-1-any-user-can-send-a-chat-request-to-another-approved-user-2-the-sender-must-only-see-request-sent-after-sending-3-the-receiver-must-see-accept-reject-only-when-request-touserid-currentuserid-and-request-status-pending",
+      "featureTitle": "Enforce the exact Chat Request UI logic on the approved users list: (1) any user can send a chat request to another approved user; (2) the sender must ONLY see “Request Sent” after sending; (3) the receiver must see Accept/Reject ONLY when request.toUserId === currentUserId AND request.status === \"pending\".",
+      "files": [
+        "frontend/src/screens/users/ApprovedUsersListView.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-after-a-receiver-accepts-a-pending-chat-request-open-a-permanent-private-1-to-1-chat-room-between-the-two-users-and-display-a-standard-chat-ui-with-message-list-chat-input-the-chat-must-remain-accessible-in-the-future-not-a-temporary-session",
+      "featureTitle": "After a receiver Accepts a pending chat request, open a permanent private 1-to-1 chat room between the two users and display a standard chat UI with message list + chat input; the chat must remain accessible in the future (not a temporary session).",
+      "files": [
+        "frontend/src/components/chat/ChatRoomView.tsx",
+        "frontend/src/lib/firebase.ts",
+        "frontend/src/screens/ChatScreen.tsx",
+        "frontend/src/screens/users/ApprovedUsersListView.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-after-a-receiver-rejects-a-pending-chat-request-1-the-sender-must-clearly-see-that-the-request-was-rejected-2-the-sender-can-re-send-a-request-to-the-same-receiver-only-after-24-hours-have-passed-since-the-rejection",
+      "featureTitle": "After a receiver Rejects a pending chat request: (1) the sender must clearly see that the request was rejected; (2) the sender can re-send a request to the same receiver ONLY after 24 hours have passed since the rejection.",
+      "files": [
+        "frontend/src/lib/firebase.ts",
+        "frontend/src/screens/users/ApprovedUsersListView.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-changes-are-verifiably-visible-in-draft-after-implementing-each-missing-piece-above-update-the-relevant-screens-so-that-the-behavior-change-can-be-confirmed-immediately-in-the-draft-preview-without-requiring-undocumented-steps",
+      "featureTitle": "Ensure changes are verifiably visible in Draft: after implementing each missing piece above, update the relevant screens so that the behavior change can be confirmed immediately in the Draft preview without requiring undocumented steps.",
+      "files": [
+        "frontend/src/screens/ChatScreen.tsx",
+        "frontend/src/screens/admin/AdminUsersScreen.tsx",
+        "frontend/src/screens/users/ApprovedUsersListView.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "camera@1.0.0",
+        "authorization@4.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
       ],
       "confidence": "high"
     }

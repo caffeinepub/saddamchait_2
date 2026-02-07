@@ -1,21 +1,169 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Allow authenticated users to create their own Firestore profile document",
+  "title": "Admin Users list fixes and exact chat request accept/reject flow (24h resend + permanent 1:1 chat)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Modify Firestore security rules to permit an authenticated user to create only their own profile document at users/{userId} (request.auth.uid == userId) without changing any other rules or app logic.",
+      "summary": "Make /admin/users always show one combined list of all users (approved + unapproved) using the existing admin route/layout/menus.",
       "acceptanceCriteria": [
-        "In `frontend/firestore.rules`, the `match /users/{userId}` block includes an `allow create:` rule that evaluates to true only when the request is authenticated and `request.auth.uid == userId`.",
-        "After deploying the updated Firestore rules, a brand-new user completing signup can successfully write the profile document to `users/{auth.uid}` (no 'Missing or insufficient permissions' error).",
-        "Existing constraints remain unchanged: users cannot write other users' profile documents; admin/super_admin/helper_admin permissions and all other collection rules are not altered except as required to enable profile CREATE for self."
+        "Navigating to /admin/users shows a single list/table containing all users (approved, unapproved/pending, rejected, blocked) without requiring any filter toggles to see them.",
+        "The screen still uses the existing AdminLayout and AdminRouteGuard flow and does not introduce new routes/screens for user management.",
+        "No working admin actions are removed or hidden as a side effect of the list change."
       ],
       "file_operations": [
         {
-          "path": "frontend/firestore.rules",
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
           "operation": "modify",
-          "description": "Update (or confirm) the `match /users/{userId}` rules so `allow create` is permitted only for authenticated requests where `request.auth.uid == userId`, ensuring no other rule blocks self-create and without altering admin/helper or other collection rules."
+          "description": "Switch the data source from pending-only to the full users list (approved + pending + rejected + blocked) while keeping the existing AdminRouteGuard + AdminLayout wrapper and existing actions menu placement."
+        },
+        {
+          "path": "frontend/src/hooks/useFirestoreUsersList.ts",
+          "operation": "modify",
+          "description": "Extend the existing all-users hook to support admin user management mutations needed by the existing /admin/users screen so it can render all users and keep UI in sync via React Query invalidation."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Ensure core user details are always visible inline on each /admin/users row (photo, name, email, phone, createdAt).",
+      "acceptanceCriteria": [
+        "Each user row in /admin/users visibly displays: avatar/photo, full name, email, phone number, and a human-readable signup date derived from createdAt.",
+        "These fields remain visible when the list is scrolled and regardless of the user status (approved/pending/rejected/blocked).",
+        "The existing “View Details” dialog (PendingUserDetailsDialog) may remain, but it is optional and must not be the only place where these core fields are visible."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "operation": "modify",
+          "description": "Update the existing table columns so every row permanently renders avatar/photo, name, email, phone number, and a formatted joined date/time from users.createdAt for all user statuses; remove any role-based hiding for these fields while preserving the AdminLayout and row Actions column."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Keep all admin actions working for every user on /admin/users and update the list immediately after each action (no refresh).",
+      "acceptanceCriteria": [
+        "After each admin action is performed, the affected user row updates to reflect the new state (e.g., approved status, blocked state, role) without manual refresh.",
+        "Actions remain accessible for the appropriate admin roles (super admin vs helper admin) as currently intended, but core visibility of user details remains unchanged.",
+        "If delete is not currently implemented, add it in the same existing actions pattern (dropdown + confirmation) and ensure it removes the user from the list immediately after success."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/admin/UserRowActions.tsx",
+          "operation": "modify",
+          "description": "Add a 'Delete User' action to the existing dropdown menu pattern (DropdownMenu + AlertDialog confirmation) and keep existing approve/reject/block/promote/view-details actions intact. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useFirestoreUsersList.ts",
+          "operation": "modify",
+          "description": "Add mutations for approve/reject/block/promote/delete that invalidate the all-users query after success so the list updates immediately without refresh."
+        },
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Implement Firestore helper capabilities required by /admin/users actions (including deleting a user document) in the same minimal style as existing approve/reject/block/promote helpers."
+        },
+        {
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "operation": "modify",
+          "description": "Wire the extended hook/mutations into the existing AdminUsersScreen so actions operate on any user row and reflect changes immediately via query invalidation (no route changes, no layout changes)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Enforce exact chat request UI visibility rules on the approved users list (sender only sees 'Request Sent'; receiver sees Accept/Reject only for pending incoming).",
+      "acceptanceCriteria": [
+        "In the ApprovedUsersListView, Accept/Reject controls render only for incoming requests where (toUserId == current user) AND status == pending.",
+        "For any sent request, the sender’s UI shows only “Request Sent” (no Accept/Reject, no extra buttons) while it remains pending.",
+        "No other request statuses accidentally surface Accept/Reject controls (e.g., accepted/rejected must not show those controls)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/screens/users/ApprovedUsersListView.tsx",
+          "operation": "modify",
+          "description": "Harden the rendering conditions so Accept/Reject are only shown for pending incoming requests (toUserId === current user) and ensure the sender sees only a 'Request Sent' state for pending outgoing requests; avoid showing any accept/reject controls anywhere else. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "On accept: create/open a permanent private 1:1 chat and show a standard chat UI with history + input; accepted chats remain accessible under Chats.",
+      "acceptanceCriteria": [
+        "Accepting a request transitions the UI into a 1-to-1 chat room view for that pair (either by navigation or in-place, matching the existing routing approach).",
+        "The chat room view contains: a message history area and an input box that can send new messages.",
+        "After reload/sign-in later, the accepted chat still appears under the user’s Chats (ChatScreen) and reopens correctly.",
+        "The solution uses the existing project structure and routing approach (no new project, no major restructure)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Add/adjust Firestore helper capabilities so accepting a chat request ensures a durable 1:1 chat record exists for the pair and supports loading/sending messages for that chat (persisted across reloads)."
+        },
+        {
+          "path": "frontend/src/screens/users/ApprovedUsersListView.tsx",
+          "operation": "modify",
+          "description": "After accepting a pending incoming request, transition the user into the existing Chats area (/chat) in a way that opens the relevant 1:1 chat immediately (e.g., via existing navigation + a persisted 'open chat' hint), matching the app’s current manual routing style."
+        },
+        {
+          "path": "frontend/src/screens/ChatScreen.tsx",
+          "operation": "modify",
+          "description": "Extend the existing ChatScreen to support opening a selected 1:1 chat and rendering a standard chat UI (message list + input) without introducing a new route; keep the current Chats list view and integrate the room view in-place."
+        },
+        {
+          "path": "frontend/src/components/chat/ChatRoomView.tsx",
+          "operation": "create",
+          "description": "Create a focused chat room UI component used by ChatScreen that renders message history and a send-message input, using existing shadcn-ui primitives already in the project. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "On reject: show a clear rejected state to the sender and enforce a 24-hour resend cooldown based on Firestore timestamps.",
+      "acceptanceCriteria": [
+        "When a request is rejected, the sender’s UI clearly shows a rejected state for that target user (not ambiguous).",
+        "Attempting to re-send within 24 hours is blocked (UI disabled and/or backend/client function throws with a clear error message).",
+        "After 24 hours have elapsed, the sender can send a new request to the same receiver and then sees only “Request Sent” again.",
+        "The 24-hour rule is enforced based on stored timestamps in Firestore (not only in-memory timers) so it persists across reloads/devices."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/firebase.ts",
+          "operation": "modify",
+          "description": "Persist a rejection timestamp on chat request rejection and enforce the 24-hour resend rule when sending a new request to the same user by checking stored Firestore timestamps (not in-memory)."
+        },
+        {
+          "path": "frontend/src/screens/users/ApprovedUsersListView.tsx",
+          "operation": "modify",
+          "description": "Update the per-user request state UI so 'Rejected' is clearly shown to the sender and the resend action is disabled until 24 hours have elapsed, with a clear error/toast message if a resend is attempted too early. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Make all changes immediately verifiable in Draft preview with minimal, scoped UI updates only.",
+      "acceptanceCriteria": [
+        "Draft preview shows updated /admin/users behavior (all users visible + permanent user details).",
+        "Draft preview shows updated chat request behaviors (sender-only “Request Sent”, receiver-only Accept/Reject for pending incoming, reject state visibility, 24h resend gating, and accept opens chat UI).",
+        "No unrelated UI redesign occurs while making these fixes."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/screens/admin/AdminUsersScreen.tsx",
+          "operation": "modify",
+          "description": "Ensure the updated 'all users' list/table and permanently visible user fields are displayed directly on /admin/users in Draft (no hidden-only changes), while preserving the existing admin layout and actions menu structure."
+        },
+        {
+          "path": "frontend/src/screens/users/ApprovedUsersListView.tsx",
+          "operation": "modify",
+          "description": "Ensure chat request state changes (Request Sent / incoming Accept-Reject / Rejected + cooldown messaging) are visibly reflected in Draft immediately after actions complete."
+        },
+        {
+          "path": "frontend/src/screens/ChatScreen.tsx",
+          "operation": "modify",
+          "description": "Ensure the post-accept flow visibly opens a 1:1 chat room UI (messages + input) within the existing /chat screen in Draft so the behavior change is directly confirmable."
         }
       ]
     }

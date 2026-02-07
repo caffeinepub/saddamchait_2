@@ -1,21 +1,18 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
 import PasswordResetScreen from './screens/PasswordResetScreen';
 import HomeScreen from './screens/HomeScreen';
-import ProfileScreen from './screens/ProfileScreen';
 import ChatScreen from './screens/ChatScreen';
 import UsersScreen from './screens/UsersScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import PendingApprovalScreen from './screens/PendingApprovalScreen';
 import AdminDashboardScreen from './screens/admin/AdminDashboardScreen';
 import AdminUsersScreen from './screens/admin/AdminUsersScreen';
 import AdminChatsScreen from './screens/admin/AdminChatsScreen';
 import AdminReportsScreen from './screens/admin/AdminReportsScreen';
 import AdminSettingsScreen from './screens/admin/AdminSettingsScreen';
-import AuthenticatedRouteGuard from './components/auth/AuthenticatedRouteGuard';
-import AdminRouteGuard from './components/auth/AdminRouteGuard';
-import AppHeader from './components/layout/AppHeader';
 import { Toaster } from '@/components/ui/sonner';
 
 const queryClient = new QueryClient({
@@ -30,151 +27,86 @@ const queryClient = new QueryClient({
 type Route = 
   | '/login' 
   | '/signup' 
-  | '/password-reset'
+  | '/password-reset' 
   | '/home' 
-  | '/profile' 
   | '/chat' 
-  | '/users'
+  | '/users' 
+  | '/profile' 
   | '/pending-approval'
   | '/admin'
   | '/admin/users'
   | '/admin/chats'
   | '/admin/reports'
-  | '/admin/settings';
+  | '/admin/settings'
+  | { path: '/chat'; chatId: string };
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState<Route>('/login');
 
-  const navigate = (route: Route) => {
-    console.log('Navigating to:', route);
+  const handleNavigate = (route: Route) => {
     setCurrentRoute(route);
   };
 
-  useEffect(() => {
-    console.log('Current route:', currentRoute);
-  }, [currentRoute]);
+  const renderScreen = () => {
+    // Handle chat with chatId
+    if (typeof currentRoute === 'object' && currentRoute.path === '/chat') {
+      return <ChatScreen onNavigate={handleNavigate} chatId={currentRoute.chatId} />;
+    }
 
-  const renderContent = () => {
+    // Handle string routes
     switch (currentRoute) {
       case '/login':
         return (
-          <LoginScreen 
-            onNavigateToSignup={() => navigate('/signup')}
-            onNavigateToReset={() => navigate('/password-reset')}
-            onLoginSuccess={(redirectTo) => navigate(redirectTo)}
+          <LoginScreen
+            onNavigateToSignup={() => handleNavigate('/signup')}
+            onNavigateToReset={() => handleNavigate('/password-reset')}
+            onLoginSuccess={(redirectTo) => handleNavigate(redirectTo)}
           />
         );
       case '/signup':
         return (
-          <SignupScreen 
-            onNavigateToLogin={() => navigate('/login')}
-            onSignupSuccess={(redirectTo) => navigate(redirectTo)}
+          <SignupScreen
+            onNavigateToLogin={() => handleNavigate('/login')}
+            onSignupSuccess={(redirectTo) => handleNavigate(redirectTo)}
           />
         );
       case '/password-reset':
         return (
-          <PasswordResetScreen 
-            onNavigateToLogin={() => navigate('/login')}
+          <PasswordResetScreen
+            onNavigateToLogin={() => handleNavigate('/login')}
           />
         );
       case '/home':
-        return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-            onUnapproved={() => navigate('/pending-approval')}
-          >
-            <AppHeader onNavigate={navigate} />
-            <HomeScreen />
-          </AuthenticatedRouteGuard>
-        );
-      case '/profile':
-        return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-            onUnapproved={() => navigate('/pending-approval')}
-          >
-            <AppHeader onNavigate={navigate} />
-            <ProfileScreen onNavigate={navigate} />
-          </AuthenticatedRouteGuard>
-        );
+        return <HomeScreen />;
       case '/chat':
-        return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-            onUnapproved={() => navigate('/pending-approval')}
-          >
-            <AppHeader onNavigate={navigate} />
-            <ChatScreen onNavigate={navigate} />
-          </AuthenticatedRouteGuard>
-        );
+        return <ChatScreen onNavigate={handleNavigate} />;
       case '/users':
-        return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-            onUnapproved={() => navigate('/pending-approval')}
-          >
-            <AppHeader onNavigate={navigate} />
-            <UsersScreen onNavigate={navigate} />
-          </AuthenticatedRouteGuard>
-        );
+        return <UsersScreen onNavigate={handleNavigate} />;
+      case '/profile':
+        return <ProfileScreen />;
       case '/pending-approval':
         return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-          >
-            <PendingApprovalScreen onNavigateToLogin={() => navigate('/login')} />
-          </AuthenticatedRouteGuard>
+          <PendingApprovalScreen
+            onNavigateToLogin={() => handleNavigate('/login')}
+          />
         );
       case '/admin':
+        return <AdminDashboardScreen onNavigate={handleNavigate} />;
       case '/admin/users':
-        return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-            onUnapproved={() => navigate('/pending-approval')}
-          >
-            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
-              <AdminUsersScreen onNavigate={navigate} />
-            </AdminRouteGuard>
-          </AuthenticatedRouteGuard>
-        );
+        return <AdminUsersScreen onNavigate={handleNavigate} />;
       case '/admin/chats':
-        return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-            onUnapproved={() => navigate('/pending-approval')}
-          >
-            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
-              <AdminChatsScreen onNavigate={navigate} />
-            </AdminRouteGuard>
-          </AuthenticatedRouteGuard>
-        );
+        return <AdminChatsScreen onNavigate={handleNavigate} />;
       case '/admin/reports':
-        return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-            onUnapproved={() => navigate('/pending-approval')}
-          >
-            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
-              <AdminReportsScreen onNavigate={navigate} />
-            </AdminRouteGuard>
-          </AuthenticatedRouteGuard>
-        );
+        return <AdminReportsScreen onNavigate={handleNavigate} />;
       case '/admin/settings':
-        return (
-          <AuthenticatedRouteGuard 
-            onUnauthenticated={() => navigate('/login')}
-            onUnapproved={() => navigate('/pending-approval')}
-          >
-            <AdminRouteGuard onUnauthorized={() => navigate('/chat')}>
-              <AdminSettingsScreen onNavigate={navigate} />
-            </AdminRouteGuard>
-          </AuthenticatedRouteGuard>
-        );
+        return <AdminSettingsScreen onNavigate={handleNavigate} />;
       default:
         return (
-          <div className="flex items-center justify-center min-h-screen">
-            <p>Page not found</p>
-          </div>
+          <LoginScreen
+            onNavigateToSignup={() => handleNavigate('/signup')}
+            onNavigateToReset={() => handleNavigate('/password-reset')}
+            onLoginSuccess={(redirectTo) => handleNavigate(redirectTo)}
+          />
         );
     }
   };
@@ -182,7 +114,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-background">
-        {renderContent()}
+        {renderScreen()}
         <Toaster />
       </div>
     </QueryClientProvider>

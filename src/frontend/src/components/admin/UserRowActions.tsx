@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserCheck, UserX, Ban, Shield, Eye } from 'lucide-react';
+import { MoreHorizontal, UserCheck, UserX, Ban, Shield, Eye, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface UserRowActionsProps {
@@ -36,6 +36,7 @@ interface UserRowActionsProps {
   onReject: () => void;
   onBlock?: () => void;
   onPromoteToHelperAdmin?: () => void;
+  onDelete?: () => void;
   onViewDetails?: () => void;
   isUpdating: boolean;
 }
@@ -49,6 +50,7 @@ export default function UserRowActions({
   onReject,
   onBlock,
   onPromoteToHelperAdmin,
+  onDelete,
   onViewDetails,
   isUpdating,
 }: UserRowActionsProps) {
@@ -56,6 +58,7 @@ export default function UserRowActions({
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showPromoteDialog, setShowPromoteDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleApprove = () => {
     onApprove();
@@ -79,6 +82,13 @@ export default function UserRowActions({
       onPromoteToHelperAdmin();
     }
     setShowPromoteDialog(false);
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete();
+    }
+    setShowDeleteDialog(false);
   };
 
   return (
@@ -121,9 +131,18 @@ export default function UserRowActions({
               {user.role === 'user' && (
                 <DropdownMenuItem onClick={() => setShowPromoteDialog(true)}>
                   <Shield className="mr-2 h-4 w-4" />
-                  Promote to Helper Admin
+                  Make Helper Admin
                 </DropdownMenuItem>
               )}
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete User
+              </DropdownMenuItem>
             </>
           )}
         </DropdownMenuContent>
@@ -134,7 +153,7 @@ export default function UserRowActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Approve User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to approve {user.fullName}? They will be able to log in to the application.
+              Are you sure you want to approve {user.fullName}? They will gain access to the application.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -149,53 +168,64 @@ export default function UserRowActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Reject User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to reject {user.fullName}? They will see a rejection message when trying to log in.
+              Are you sure you want to reject {user.fullName}? They will not be able to access the application.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Reject
+            <AlertDialogAction onClick={handleReject}>Reject</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to block {user.fullName}? This will immediately revoke their access.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBlock} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Block
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {isSuperAdmin && (
-        <>
-          <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Block User</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to block {user.fullName}? They will be permanently blocked from accessing the application.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBlock} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Block
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+      <AlertDialog open={showPromoteDialog} onOpenChange={setShowPromoteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Promote to Helper Admin</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to promote {user.fullName} to Helper Admin? They will gain administrative privileges.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePromote}>Promote</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-          <AlertDialog open={showPromoteDialog} onOpenChange={setShowPromoteDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Promote to Helper Admin</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to promote {user.fullName} to Helper Admin? They will be able to approve and reject users, but cannot modify roles or access sensitive information.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handlePromote}>Promote</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
-      )}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete {user.fullName}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

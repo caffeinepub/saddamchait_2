@@ -35,13 +35,14 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
     mutationFn: ({ toUserId }: { toUserId: string }) =>
       sendChatRequest(authUser?.uid || '', toUserId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['chatRequests', authUser?.uid] });
+      queryClient.refetchQueries({ queryKey: ['chatRequests', authUser?.uid] });
       toast.success('Chat request sent');
       setSelectedUserId(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error sending request:', error);
-      toast.error('Failed to send chat request');
+      toast.error(error.message || 'Failed to send chat request');
     },
   });
 
@@ -49,9 +50,12 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
     mutationFn: ({ requestId, accept }: { requestId: string; accept: boolean }) =>
       respondToChatRequest(requestId, accept),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['chatRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['chatRequests', authUser?.uid] });
+      queryClient.refetchQueries({ queryKey: ['chatRequests', authUser?.uid] });
       if (variables.accept) {
         toast.success('Chat request accepted');
+        // Navigate to chat after accepting
+        setTimeout(() => onNavigate('/chat'), 500);
       } else {
         toast.success('Chat request rejected');
       }
@@ -70,15 +74,27 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
     return fullName.slice(0, 2).toUpperCase();
   };
 
-  const incomingRequests = chatRequests.filter((req) => req.toUserId === authUser?.uid && req.status === 'pending');
+  // Filter incoming requests: only show pending requests where current user is the receiver
+  const incomingRequests = chatRequests.filter(
+    (req) => req.toUserId === authUser?.uid && req.status === 'pending'
+  );
+  
   const sentRequests = chatRequests.filter((req) => req.fromUserId === authUser?.uid);
 
   const getRequestStatus = (userId: string) => {
     const sent = sentRequests.find((req) => req.toUserId === userId);
     if (sent) {
-      return sent.status;
+      return sent;
     }
     return null;
+  };
+
+  const canResendAfterReject = (rejectedAt: any): boolean => {
+    if (!rejectedAt) return true;
+    const rejectedTime = rejectedAt.toMillis ? rejectedAt.toMillis() : rejectedAt;
+    const now = Date.now();
+    const hoursSinceRejection = (now - rejectedTime) / (1000 * 60 * 60);
+    return hoursSinceRejection >= 24;
   };
 
   if (usersLoading || requestsLoading) {
@@ -103,6 +119,12 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
                 const sender = users.find((u) => u.uid === request.fromUserId);
                 if (!sender) return null;
 
+                // Only show Accept/Reject if: toUserId === currentUserId AND status === pending AND fromUserId !== currentUserId
+                const canRespond = 
+                  request.toUserId === authUser?.uid && 
+                  request.status === 'pending' && 
+                  request.fromUserId !== authUser?.uid;
+
                 return (
                   <div
                     key={request.id}
@@ -118,29 +140,31 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
                         <p className="text-xs text-muted-foreground">wants to chat with you</p>
                       </div>
                     </div>
-                    <div className="flex gap-2 shrink-0 ml-3">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          respondMutation.mutate({ requestId: request.id, accept: true })
-                        }
-                        disabled={respondMutation.isPending}
-                      >
-                        <Check className="h-4 w-4 mr-1" />
-                        Accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          respondMutation.mutate({ requestId: request.id, accept: false })
-                        }
-                        disabled={respondMutation.isPending}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Reject
-                      </Button>
-                    </div>
+                    {canRespond && (
+                      <div className="flex gap-2 shrink-0 ml-3">
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            respondMutation.mutate({ requestId: request.id, accept: true })
+                          }
+                          disabled={respondMutation.isPending}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            respondMutation.mutate({ requestId: request.id, accept: false })
+                          }
+                          disabled={respondMutation.isPending}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -160,7 +184,7 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
               <p className="text-center text-muted-foreground py-8">No approved users found</p>
             ) : (
               users.map((user) => {
-                const requestStatus = getRequestStatus(user.uid);
+                const requestData = getRequestStatus(user.uid);
                 const hasAcceptedChat = chatRequests.some(
                   (req) =>
                     req.status === 'accepted' &&
@@ -197,7 +221,8 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
                       </div>
                     </button>
                     
-                    {isSelected && !hasAcceptedChat && !requestStatus && (
+                    {/* Show Send Request button only if no request exists and no accepted chat */}
+                    {isSelected && !hasAcceptedChat && !requestData && (
                       <div className="px-3 pb-3 pt-0">
                         <Button
                           size="sm"
@@ -212,11 +237,15 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
                       </div>
                     )}
                     
+                    {/* Show Open Chat button for accepted chats */}
                     {hasAcceptedChat && (
                       <div className="px-3 pb-3 pt-0">
                         <Button
                           size="sm"
-                          onClick={() => onNavigate('/chat')}
+                          onClick={() => {
+                            const chatId = [authUser?.uid, user.uid].sort().join('_');
+                            onNavigate(`/chat/${chatId}`);
+                          }}
                           className="w-full"
                         >
                           <MessageCircle className="h-4 w-4 mr-2" />
@@ -225,15 +254,37 @@ export default function ApprovedUsersListView({ onNavigate }: ApprovedUsersListV
                       </div>
                     )}
                     
-                    {requestStatus === 'pending' && (
+                    {/* Sender only sees "Request Sent" for pending requests */}
+                    {requestData && requestData.status === 'pending' && (
                       <div className="px-3 pb-3 pt-0">
-                        <Badge variant="secondary" className="w-full justify-center">Request Sent</Badge>
+                        <Badge variant="secondary" className="w-full justify-center py-2">
+                          Request Sent
+                        </Badge>
                       </div>
                     )}
                     
-                    {requestStatus === 'rejected' && (
-                      <div className="px-3 pb-3 pt-0">
-                        <Badge variant="outline" className="w-full justify-center">Rejected</Badge>
+                    {/* Show Rejected status with resend option after 24h */}
+                    {requestData && requestData.status === 'rejected' && (
+                      <div className="px-3 pb-3 pt-0 space-y-2">
+                        <Badge variant="outline" className="w-full justify-center py-2 text-destructive border-destructive">
+                          Request Rejected
+                        </Badge>
+                        {canResendAfterReject(requestData.rejectedAt) ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => sendRequestMutation.mutate({ toUserId: user.uid })}
+                            disabled={sendRequestMutation.isPending}
+                            className="w-full"
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Send New Request
+                          </Button>
+                        ) : (
+                          <p className="text-xs text-center text-muted-foreground">
+                            You can send a new request after 24 hours
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>

@@ -1,26 +1,108 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Firebase Auth signup succeeds but Firestore profile document creation is blocked by security rules; project needs a production-critical rules fix to allow authenticated users to create their own profile document (uid matches userId).",
+  "summary": "Chat + Admin + Request system with strict no-redesign/no-restructure constraints; implement missing pieces only within existing structure, ensuring changes appear in Draft.",
   "architectural_notes": [
-    "HOT-LOCKED: Do not change signup flow logic or admin/helper logic; only adjust Firestore security rules to permit authenticated users to create their own profile document where request.auth.uid == userId."
+    "Do not redesign/restructure/experiment; keep existing structure and logic in place.",
+    "Do not touch parts that are already working; fix only what is missing step-by-step.",
+    "Do not create a new project or move logic between places.",
+    "Any applied change must be visible in Draft (otherwise treat as not implemented)."
   ],
   "known_issues": [
-    "Signup fails at Firestore profile write step with “Missing or insufficient permissions” because Firestore rules do not allow new authenticated users to create their own profile document; profile photo/name/phone/email not saved."
+    "Draft may not be reflecting applied changes; user indicates risk that fixes are not actually implemented/visible."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-update-firestore-security-rules-to-allow-a-newly-authenticated-user-to-create-their-own-profile-document-during-signup-by-permitting-writes-when-request-auth-null-and-request-auth-uid-userid-for-the-profile-document-path-used-by-the-app-users-userid-do-not-change-any-signup-flow-logic-admin-helper-logic-or-add-new-features",
-      "title": "Update Firestore security rules to allow a newly authenticated user to CREATE their own profile document during signup by permitting writes when `request.auth != null` and `request.auth.uid == userId` for the profile document path used by the app (`users/{userId}`). Do not change any signup flow logic, admin/helper logic, or add new features.",
+      "id": "feature-update-the-admin-users-screen-so-an-admin-always-sees-the-full-list-of-users-approved-unapproved-in-the-existing-admin-users-screen-do-not-create-a-new-admin-screen-while-preserving-the-current-admin-layout-and-actions-menu-structure",
+      "title": "Update the Admin Users screen so an admin ALWAYS sees the full list of users (approved + unapproved) in the existing /admin/users screen (do not create a new admin screen), while preserving the current Admin layout and actions menu structure.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-ensure-that-on-the-admin-users-list-view-user-details-remain-permanently-visible-in-the-list-row-not-only-inside-a-dialog-photo-name-email-phone-number-and-signup-date-time-from-users-createdat-must-be-visible-for-every-user-in-the-list-role-based-hiding-is-not-allowed-for-these-fields",
+      "title": "Ensure that on the Admin Users list view, user details remain permanently visible in the list row (not only inside a dialog): photo, name, email, phone number, and signup date/time (from users.createdAt) must be visible for every user in the list (role-based hiding is not allowed for these fields).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-keep-admin-actions-functional-at-all-times-on-admin-users-for-every-user-approve-block-delete-and-make-helper-admin-promote-must-work-without-breaking-the-list-ui-or-requiring-a-page-refresh-the-list-must-update-after-each-action",
+      "title": "Keep Admin actions functional at all times on /admin/users for every user: approve, block, delete, and make helper admin (promote) must work without breaking the list UI or requiring a page refresh; the list must update after each action.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-enforce-the-exact-chat-request-ui-logic-on-the-approved-users-list-1-any-user-can-send-a-chat-request-to-another-approved-user-2-the-sender-must-only-see-request-sent-after-sending-3-the-receiver-must-see-accept-reject-only-when-request-touserid-currentuserid-and-request-status-pending",
+      "title": "Enforce the exact Chat Request UI logic on the approved users list: (1) any user can send a chat request to another approved user; (2) the sender must ONLY see “Request Sent” after sending; (3) the receiver must see Accept/Reject ONLY when request.toUserId === currentUserId AND request.status === \"pending\".",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-after-a-receiver-accepts-a-pending-chat-request-open-a-permanent-private-1-to-1-chat-room-between-the-two-users-and-display-a-standard-chat-ui-with-message-list-chat-input-the-chat-must-remain-accessible-in-the-future-not-a-temporary-session",
+      "title": "After a receiver Accepts a pending chat request, open a permanent private 1-to-1 chat room between the two users and display a standard chat UI with message list + chat input; the chat must remain accessible in the future (not a temporary session).",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-after-a-receiver-rejects-a-pending-chat-request-1-the-sender-must-clearly-see-that-the-request-was-rejected-2-the-sender-can-re-send-a-request-to-the-same-receiver-only-after-24-hours-have-passed-since-the-rejection",
+      "title": "After a receiver Rejects a pending chat request: (1) the sender must clearly see that the request was rejected; (2) the sender can re-send a request to the same receiver ONLY after 24 hours have passed since the rejection.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-changes-are-verifiably-visible-in-draft-after-implementing-each-missing-piece-above-update-the-relevant-screens-so-that-the-behavior-change-can-be-confirmed-immediately-in-the-draft-preview-without-requiring-undocumented-steps",
+      "title": "Ensure changes are verifiably visible in Draft: after implementing each missing piece above, update the relevant screens so that the behavior change can be confirmed immediately in the Draft preview without requiring undocumented steps.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix Firestore security rules to allow authenticated users to create their own profile document",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Admin dashboard must always show full user list (approved + unapproved) with permanently visible user details and always-functional admin actions (approve/block/delete/make helper admin).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Chat request flow: any user can send request to another approved user; sender sees only “Request Sent”; receiver sees Accept/Reject only when request.toUserId === currentUserId AND request.status === \"pending\".",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "On Accept: open a permanent private 1-to-1 chat room with normal chat input and messages.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "On Reject: sender clearly sees request was rejected; allow re-send only after 24 hours.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Implementation constraint: do not redesign/restructure/experiment, do not touch working parts, do not create a new project, do not move logic; apply fixes step-by-step and ensure changes are visible in Draft.",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Fix Admin Users list visibility and enforce exact chat request accept/reject flow (including 24h resend rule and permanent 1:1 chat)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
